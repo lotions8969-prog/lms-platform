@@ -1,0 +1,186 @@
+'use client';
+
+import { useState } from 'react';
+import { CheckCircle, XCircle, ChevronRight, Trophy, RotateCcw } from 'lucide-react';
+import { Quiz, QuizQuestion } from '@/lib/types';
+
+interface QuizSectionProps {
+  quiz: Quiz;
+  onPass: () => void;
+}
+
+export default function QuizSection({ quiz, onPass }: QuizSectionProps) {
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+
+  const question: QuizQuestion = quiz.questions[current];
+  const total = quiz.questions.length;
+
+  const handleSelect = (idx: number) => {
+    if (submitted) return;
+    setSelected(idx);
+  };
+
+  const handleNext = () => {
+    if (selected === null) return;
+    const newAnswers = [...answers, selected];
+    if (current + 1 < total) {
+      setAnswers(newAnswers);
+      setCurrent(current + 1);
+      setSelected(null);
+      setSubmitted(false);
+    } else {
+      setAnswers(newAnswers);
+      setShowResult(true);
+    }
+  };
+
+  const handleSubmitAnswer = () => {
+    setSubmitted(true);
+  };
+
+  const reset = () => {
+    setCurrent(0);
+    setAnswers([]);
+    setSelected(null);
+    setSubmitted(false);
+    setShowResult(false);
+  };
+
+  if (showResult) {
+    const correct = answers.filter((a, i) => a === quiz.questions[i].answer).length;
+    const score = Math.round((correct / total) * 100);
+    const passed = score >= quiz.passingScore;
+
+    if (passed) onPass();
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${passed ? 'bg-green-100' : 'bg-red-100'}`}>
+          {passed ? (
+            <Trophy className="w-10 h-10 text-green-600" />
+          ) : (
+            <XCircle className="w-10 h-10 text-red-500" />
+          )}
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          {passed ? '合格おめでとうございます！' : 'もう一度挑戦しましょう'}
+        </h3>
+        <p className="text-gray-500 mb-6">
+          正解数: {correct}/{total} — スコア: <span className={`font-bold text-xl ${passed ? 'text-green-600' : 'text-red-500'}`}>{score}点</span>
+          {' '}（合格ライン: {quiz.passingScore}点）
+        </p>
+
+        <div className="space-y-3 mb-8 text-left">
+          {quiz.questions.map((q, i) => (
+            <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${answers[i] === q.answer ? 'bg-green-50' : 'bg-red-50'}`}>
+              {answers[i] === q.answer ? (
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-gray-800">{q.question}</p>
+                <p className="text-xs text-gray-500 mt-1">正解: {q.options[q.answer]}</p>
+                {answers[i] !== q.answer && (
+                  <p className="text-xs text-red-500">あなたの回答: {q.options[answers[i]]}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {!passed && (
+          <button onClick={reset} className="flex items-center gap-2 mx-auto px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+            <RotateCcw className="w-4 h-4" />
+            再挑戦する
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-gray-800">確認テスト</h3>
+        <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+          {current + 1} / {total}
+        </span>
+      </div>
+
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6">
+        <div
+          className="bg-blue-600 h-1.5 rounded-full transition-all"
+          style={{ width: `${((current) / total) * 100}%` }}
+        />
+      </div>
+
+      <p className="text-base font-medium text-gray-900 mb-5">{question.question}</p>
+
+      <div className="space-y-3 mb-6">
+        {question.options.map((opt, i) => {
+          let cls = 'border-gray-200 hover:border-blue-300 hover:bg-blue-50';
+          if (selected === i) {
+            if (submitted) {
+              cls = i === question.answer
+                ? 'border-green-500 bg-green-50'
+                : 'border-red-400 bg-red-50';
+            } else {
+              cls = 'border-blue-500 bg-blue-50';
+            }
+          } else if (submitted && i === question.answer) {
+            cls = 'border-green-500 bg-green-50';
+          }
+
+          return (
+            <button
+              key={i}
+              onClick={() => handleSelect(i)}
+              className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${cls}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                  selected === i
+                    ? submitted
+                      ? i === question.answer ? 'border-green-500 text-green-500' : 'border-red-400 text-red-400'
+                      : 'border-blue-500 text-blue-500'
+                    : 'border-gray-300 text-gray-400'
+                }`}>
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <span className="text-gray-800">{opt}</span>
+                {submitted && i === question.answer && (
+                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end">
+        {!submitted ? (
+          <button
+            onClick={handleSubmitAnswer}
+            disabled={selected === null}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            回答する
+          </button>
+        ) : (
+          <button
+            onClick={handleNext}
+            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            {current + 1 < total ? '次の問題' : '結果を見る'}
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
