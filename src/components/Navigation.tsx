@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BookOpen, LayoutDashboard, LogOut, Shield, Users } from 'lucide-react';
 
 export default function Navigation() {
-  const { user, userData, logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -16,8 +16,7 @@ export default function Navigation() {
   };
 
   if (!user) return null;
-
-  const isAdmin = userData?.role === 'admin';
+  const isAdmin = user.role === 'admin';
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -30,69 +29,33 @@ export default function Navigation() {
               </div>
               <span className="font-bold text-gray-900 text-lg">LMS</span>
             </Link>
-
             {isAdmin ? (
               <div className="flex items-center gap-1">
-                <Link
-                  href="/admin"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === '/admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <LayoutDashboard className="w-4 h-4" />
-                    ダッシュボード
-                  </span>
+                <Link href="/admin" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${pathname === '/admin' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <LayoutDashboard className="w-4 h-4" />ダッシュボード
                 </Link>
-                <Link
-                  href="/admin/courses"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    pathname.startsWith('/admin/courses') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4" />
-                    コース管理
-                  </span>
+                <Link href="/admin/courses" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${pathname.startsWith('/admin/courses') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <BookOpen className="w-4 h-4" />コース管理
                 </Link>
-                <Link
-                  href="/admin/submissions"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    pathname.startsWith('/admin/submissions') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-4 h-4" />
-                    提出物確認
-                  </span>
+                <Link href="/admin/submissions" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${pathname.startsWith('/admin/submissions') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Users className="w-4 h-4" />提出物確認
                 </Link>
               </div>
             ) : (
-              <Link
-                href="/courses"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/courses') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
+              <Link href="/courses" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname.startsWith('/courses') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                 コース一覧
               </Link>
             )}
           </div>
-
           <div className="flex items-center gap-3">
             {isAdmin && (
               <span className="flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-                <Shield className="w-3 h-3" />
-                管理者
+                <Shield className="w-3 h-3" />管理者
               </span>
             )}
-            <span className="text-sm text-gray-500">{userData?.email || user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              ログアウト
+            <span className="text-sm text-gray-500">{user.email}</span>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <LogOut className="w-4 h-4" />ログアウト
             </button>
           </div>
         </div>

@@ -1,73 +1,68 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  User as FirebaseUser,
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
-import { User } from '@/lib/types';
+
+interface UserData {
+  id: string;
+  email: string;
+  role: 'admin' | 'student';
+  progress: Record<string, { completedLessons: string[]; quizScores: Record<string, number>; completed: boolean }>;
+}
 
 interface AuthContextType {
-  user: FirebaseUser | null;
-  userData: User | null;
+  user: UserData | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, role?: 'admin' | 'student') => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [userData, setUserData] = useState<User | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshUser = async () => {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    setUser(data.user);
+  };
+
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const db = getFirebaseDb();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as User);
-        }
-      } else {
-        setUserData(null);
-      }
-      setLoading(false);
-    });
-    return unsubscribe;
+    refreshUser().finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'ログインに失敗しました');
+    await refreshUser();
   };
 
   const register = async (email: string, password: string, role: 'admin' | 'student' = 'student') => {
-    const db = getFirebaseDb();
-    const { user: newUser } = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
-    await setDoc(doc(db, 'users', newUser.uid), {
-      uid: newUser.uid,
-      email,
-      role,
-      progress: {},
-      createdAt: serverTimestamp(),
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role }),
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '登録に失敗しました');
+    await refreshUser();
   };
 
   const logout = async () => {
-    await signOut(getFirebaseAuth());
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,12 +1,9 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { getFirebaseStorage } from '@/lib/firebase';
 import { Camera, CameraOff, Circle, Square, Upload, CheckCircle, Loader2 } from 'lucide-react';
 
 interface RecordingSectionProps {
-  userId: string;
   lessonId: string;
   courseId: string;
   onUploaded: (url: string) => void;
@@ -14,7 +11,7 @@ interface RecordingSectionProps {
 
 type RecordingState = 'idle' | 'ready' | 'recording' | 'preview' | 'uploading' | 'done';
 
-export default function RecordingSection({ userId, lessonId, courseId, onUploaded }: RecordingSectionProps) {
+export default function RecordingSection({ lessonId, courseId, onUploaded }: RecordingSectionProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -44,22 +41,17 @@ export default function RecordingSection({ userId, lessonId, courseId, onUploade
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    setState('idle');
   };
 
   const startRecording = () => {
     if (!streamRef.current) return;
     chunksRef.current = [];
     const mr = new MediaRecorder(streamRef.current, { mimeType: 'video/webm;codecs=vp9,opus' });
-    mr.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
+    mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     mr.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: 'video/webm' });
       setRecordedBlob(blob);
-      if (previewRef.current) {
-        previewRef.current.src = URL.createObjectURL(blob);
-      }
+      if (previewRef.current) previewRef.current.src = URL.createObjectURL(blob);
       stopCamera();
       setState('preview');
     };
@@ -68,26 +60,32 @@ export default function RecordingSection({ userId, lessonId, courseId, onUploade
     setState('recording');
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-  };
+  const stopRecording = () => mediaRecorderRef.current?.stop();
 
   const upload = async () => {
     if (!recordedBlob) return;
     setState('uploading');
-    const path = `submissions/${userId}/${courseId}/${lessonId}/${Date.now()}.webm`;
-    const storageRef = ref(getFirebaseStorage(), path);
-    const task = uploadBytesResumable(storageRef, recordedBlob);
-    task.on(
-      'state_changed',
-      (snap) => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
-      () => setError('アップロードに失敗しました'),
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        onUploaded(url);
-        setState('done');
-      }
-    );
+    setUploadProgress(10);
+    try {
+      const formData = new FormData();
+      formData.append('file', recordedBlob, 'recording.webm');
+      setUploadProgress(30);
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+      setUploadProgress(70);
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const { url } = await uploadRes.json();
+      await fetch('/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId, courseId, videoUrl: url }),
+      });
+      setUploadProgress(100);
+      onUploaded(url);
+      setState('done');
+    } catch {
+      setError('アップロードに失敗しました');
+      setState('preview');
+    }
   };
 
   const reset = () => {
@@ -104,30 +102,22 @@ export default function RecordingSection({ userId, lessonId, courseId, onUploade
       </h3>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
       )}
 
       {state === 'done' ? (
         <div className="flex flex-col items-center gap-3 py-8">
           <CheckCircle className="w-16 h-16 text-green-500" />
           <p className="text-lg font-medium text-gray-800">アップロード完了！</p>
-          <p className="text-sm text-gray-500">提出物が正常に保存されました</p>
-          <button onClick={reset} className="mt-2 px-4 py-2 text-sm text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50">
-            再度録画する
-          </button>
+          <button onClick={reset} className="mt-2 px-4 py-2 text-sm text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50">再度録画する</button>
         </div>
       ) : state === 'preview' ? (
         <div className="space-y-4">
           <video ref={previewRef} controls className="w-full rounded-lg bg-black aspect-video" />
           <div className="flex gap-3">
-            <button onClick={reset} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-              撮り直す
-            </button>
+            <button onClick={reset} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">撮り直す</button>
             <button onClick={upload} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-              <Upload className="w-4 h-4" />
-              提出する
+              <Upload className="w-4 h-4" />提出する
             </button>
           </div>
         </div>
@@ -146,38 +136,30 @@ export default function RecordingSection({ userId, lessonId, courseId, onUploade
           {(state === 'ready' || state === 'recording') && (
             <video ref={videoRef} muted className="w-full rounded-lg bg-black aspect-video" />
           )}
-
           <div className="flex gap-3">
             {state === 'idle' && (
               <button onClick={startCamera} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                <Camera className="w-4 h-4" />
-                カメラを起動
+                <Camera className="w-4 h-4" />カメラを起動
               </button>
             )}
             {state === 'ready' && (
               <>
                 <button onClick={startRecording} className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
-                  <Circle className="w-4 h-4 fill-white" />
-                  録画開始
+                  <Circle className="w-4 h-4 fill-white" />録画開始
                 </button>
-                <button onClick={stopCamera} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition-colors">
-                  <CameraOff className="w-4 h-4" />
-                  キャンセル
+                <button onClick={() => { stopCamera(); setState('idle'); }} className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition-colors">
+                  <CameraOff className="w-4 h-4" />キャンセル
                 </button>
               </>
             )}
             {state === 'recording' && (
-              <button onClick={stopRecording} className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors animate-pulse">
-                <Square className="w-4 h-4 fill-white" />
-                録画停止
+              <button onClick={stopRecording} className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white rounded-lg text-sm font-medium animate-pulse">
+                <Square className="w-4 h-4 fill-white" />録画停止
               </button>
             )}
           </div>
-
           {state === 'idle' && (
-            <p className="text-sm text-gray-500">
-              学習した内容をカメラで録画して提出してください。録画後にプレビューで確認できます。
-            </p>
+            <p className="text-sm text-gray-500">学習した内容をカメラで録画して提出してください。</p>
           )}
         </div>
       )}

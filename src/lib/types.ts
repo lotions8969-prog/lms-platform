@@ -1,10 +1,11 @@
 export interface User {
-  uid: string;
+  id: string;
   email: string;
-  displayName?: string;
+  passwordHash: string;
   role: 'admin' | 'student';
+  displayName?: string;
   progress: Record<string, CourseProgress>;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface CourseProgress {
@@ -18,9 +19,8 @@ export interface Course {
   title: string;
   description: string;
   thumbnail?: string;
-  lessonCount?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Lesson {
@@ -31,7 +31,7 @@ export interface Lesson {
   description?: string;
   videoUrl?: string;
   order: number;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface Submission {
@@ -40,9 +40,9 @@ export interface Submission {
   lessonId: string;
   courseId: string;
   videoUrl: string;
-  feedback?: string;
-  status: 'pending' | 'reviewed' | 'approved' | 'rejected';
-  createdAt: Date;
+  feedback: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
 }
 
 export interface QuizQuestion {
@@ -57,4 +57,11 @@ export interface Quiz {
   courseId: string;
   questions: QuizQuestion[];
   passingScore: number;
+}
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  role: 'admin' | 'student';
+  displayName?: string;
 }

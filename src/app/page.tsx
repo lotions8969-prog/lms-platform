@@ -5,20 +5,20 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
-  const { user, userData, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.replace('/login');
-      } else if (userData?.role === 'admin') {
+      } else if (user.role === 'admin') {
         router.replace('/admin');
       } else {
         router.replace('/courses');
       }
     }
-  }, [user, userData, loading, router]);
+  }, [user, loading, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
