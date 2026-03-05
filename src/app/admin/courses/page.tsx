@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { Course } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ export default function AdminCoursesPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchCourses = async () => {
-    const snap = await getDocs(collection(db, 'courses'));
+    const snap = await getDocs(collection(getFirebaseDb(), 'courses'));
     setCourses(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Course)));
     setLoading(false);
   };
@@ -22,7 +22,7 @@ export default function AdminCoursesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('このコースを削除しますか？')) return;
-    await deleteDoc(doc(db, 'courses', id));
+    await deleteDoc(doc(getFirebaseDb(), 'courses', id));
     setCourses((prev) => prev.filter((c) => c.id !== id));
   };
 

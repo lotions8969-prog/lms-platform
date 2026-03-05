@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
+import { getFirebaseStorage } from '@/lib/firebase';
 import { Camera, CameraOff, Circle, Square, Upload, CheckCircle, Loader2 } from 'lucide-react';
 
 interface RecordingSectionProps {
@@ -76,7 +76,7 @@ export default function RecordingSection({ userId, lessonId, courseId, onUploade
     if (!recordedBlob) return;
     setState('uploading');
     const path = `submissions/${userId}/${courseId}/${lessonId}/${Date.now()}.webm`;
-    const storageRef = ref(storage, path);
+    const storageRef = ref(getFirebaseStorage(), path);
     const task = uploadBytesResumable(storageRef, recordedBlob);
     task.on(
       'state_changed',

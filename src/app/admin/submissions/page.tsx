@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { Submission } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import { CheckCircle, XCircle, Clock, MessageSquare, Play } from 'lucide-react';
@@ -16,7 +16,7 @@ export default function SubmissionsPage() {
 
   useEffect(() => {
     const fetch = async () => {
-      const snap = await getDocs(query(collection(db, 'submissions'), orderBy('createdAt', 'desc')));
+      const snap = await getDocs(query(collection(getFirebaseDb(), 'submissions'), orderBy('createdAt', 'desc')));
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Submission));
       setSubmissions(data);
       const initial: Record<string, string> = {};
@@ -29,7 +29,7 @@ export default function SubmissionsPage() {
 
   const handleReview = async (id: string, status: 'approved' | 'rejected') => {
     setSaving(id);
-    await updateDoc(doc(db, 'submissions', id), {
+    await updateDoc(doc(getFirebaseDb(), 'submissions', id), {
       status,
       feedback: feedbacks[id] || '',
     });

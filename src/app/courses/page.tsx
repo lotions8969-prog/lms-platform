@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Course } from '@/lib/types';
 import Navigation from '@/components/Navigation';
@@ -16,7 +16,7 @@ export default function CoursesPage() {
 
   useEffect(() => {
     const fetch = async () => {
-      const snap = await getDocs(collection(db, 'courses'));
+      const snap = await getDocs(collection(getFirebaseDb(), 'courses'));
       setCourses(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Course)));
       setLoading(false);
     };

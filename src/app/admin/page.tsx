@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 import { BookOpen, Users, FileVideo, BarChart2 } from 'lucide-react';
@@ -14,9 +14,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetch = async () => {
       const [coursesSnap, usersSnap, submissionsSnap] = await Promise.all([
-        getDocs(collection(db, 'courses')),
-        getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'submissions')),
+        getDocs(collection(getFirebaseDb(), 'courses')),
+        getDocs(collection(getFirebaseDb(), 'users')),
+        getDocs(collection(getFirebaseDb(), 'submissions')),
       ]);
       const students = usersSnap.docs.filter((d) => d.data().role === 'student').length;
       const pendingReviews = submissionsSnap.docs.filter((d) => d.data().status === 'pending').length;

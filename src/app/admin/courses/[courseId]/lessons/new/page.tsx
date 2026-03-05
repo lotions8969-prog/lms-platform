@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Plus, Trash2, Save } from 'lucide-react';
@@ -52,7 +52,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const lessonRef = await addDoc(collection(db, 'lessons'), {
+    const lessonRef = await addDoc(collection(getFirebaseDb(), 'lessons'), {
       courseId,
       type,
       title,
@@ -63,7 +63,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
     });
 
     if (type === 'quiz') {
-      await addDoc(collection(db, 'quizzes'), {
+      await addDoc(collection(getFirebaseDb(), 'quizzes'), {
         lessonId: lessonRef.id,
         courseId,
         questions,

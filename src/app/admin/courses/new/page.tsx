@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -18,7 +18,7 @@ export default function NewCoursePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const docRef = await addDoc(collection(db, 'courses'), {
+    const docRef = await addDoc(collection(getFirebaseDb(), 'courses'), {
       title,
       description,
       thumbnail: thumbnail || null,

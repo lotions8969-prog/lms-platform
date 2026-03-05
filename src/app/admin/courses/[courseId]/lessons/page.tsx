@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { Lesson } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
@@ -16,7 +16,7 @@ export default function CourseLearnssonsPage({ params }: { params: Promise<{ cou
 
   const fetchLessons = async () => {
     const snap = await getDocs(
-      query(collection(db, 'lessons'), where('courseId', '==', courseId), orderBy('order'))
+      query(collection(getFirebaseDb(), 'lessons'), where('courseId', '==', courseId), orderBy('order'))
     );
     setLessons(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Lesson)));
     setLoading(false);
@@ -26,7 +26,7 @@ export default function CourseLearnssonsPage({ params }: { params: Promise<{ cou
 
   const handleDelete = async (id: string) => {
     if (!confirm('このレッスンを削除しますか？')) return;
-    await deleteDoc(doc(db, 'lessons', id));
+    await deleteDoc(doc(getFirebaseDb(), 'lessons', id));
     setLessons((prev) => prev.filter((l) => l.id !== id));
   };
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Course, Lesson } from '@/lib/types';
 import Navigation from '@/components/Navigation';
@@ -19,12 +19,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     const fetch = async () => {
-      const courseDoc = await getDoc(doc(db, 'courses', courseId));
+      const courseDoc = await getDoc(doc(getFirebaseDb(), 'courses', courseId));
       if (courseDoc.exists()) {
         setCourse({ id: courseDoc.id, ...courseDoc.data() } as Course);
       }
       const lessonsSnap = await getDocs(
-        query(collection(db, 'lessons'), where('courseId', '==', courseId), orderBy('order'))
+        query(collection(getFirebaseDb(), 'lessons'), where('courseId', '==', courseId), orderBy('order'))
       );
       setLessons(lessonsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Lesson)));
       setLoading(false);

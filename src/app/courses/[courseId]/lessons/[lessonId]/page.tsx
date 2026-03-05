@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getFirebaseDb } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lesson, Quiz } from '@/lib/types';
 import Navigation from '@/components/Navigation';
@@ -23,13 +23,13 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
 
   useEffect(() => {
     const fetch = async () => {
-      const lessonDoc = await getDoc(doc(db, 'lessons', lessonId));
+      const lessonDoc = await getDoc(doc(getFirebaseDb(), 'lessons', lessonId));
       if (lessonDoc.exists()) {
         const data = { id: lessonDoc.id, ...lessonDoc.data() } as Lesson;
         setLesson(data);
         if (data.type === 'quiz') {
           const quizSnap = await getDocs(
-            query(collection(db, 'quizzes'), where('lessonId', '==', lessonId))
+            query(collection(getFirebaseDb(), 'quizzes'), where('lessonId', '==', lessonId))
           );
           if (!quizSnap.empty) {
             setQuiz({ id: quizSnap.docs[0].id, ...quizSnap.docs[0].data() } as Quiz);
@@ -45,7 +45,7 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
 
   const markComplete = async () => {
     if (!user || completed) return;
-    await updateDoc(doc(db, 'users', user.uid), {
+    await updateDoc(doc(getFirebaseDb(), 'users', user.uid), {
       [`progress.${courseId}.completedLessons`]: arrayUnion(lessonId),
     });
     setCompleted(true);
@@ -53,7 +53,7 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
 
   const handleRecordingUploaded = async (videoUrl: string) => {
     if (!user) return;
-    await addDoc(collection(db, 'submissions'), {
+    await addDoc(collection(getFirebaseDb(), 'submissions'), {
       userId: user.uid,
       lessonId,
       courseId,
