@@ -17,23 +17,22 @@ export default function VideoPlayer({ videoUrl, onEnded }: VideoPlayerProps) {
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (playing) {
-      v.pause();
-    } else {
+    if (v.paused) {
       v.play();
+    } else {
+      v.pause();
     }
-    setPlaying(!playing);
   };
 
   const handleTimeUpdate = () => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !v.duration) return;
     setProgress((v.currentTime / v.duration) * 100);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !v.duration) return;
     v.currentTime = (Number(e.target.value) / 100) * v.duration;
   };
 
@@ -54,6 +53,8 @@ export default function VideoPlayer({ videoUrl, onEnded }: VideoPlayerProps) {
         src={videoUrl}
         className="w-full aspect-video"
         onTimeUpdate={handleTimeUpdate}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onEnded={() => {
           setPlaying(false);
           onEnded?.();

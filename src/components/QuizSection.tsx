@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, ChevronRight, Trophy, RotateCcw } from 'lucide-react';
 import { Quiz, QuizQuestion } from '@/lib/types';
 
@@ -18,6 +18,15 @@ export default function QuizSection({ quiz, onPass }: QuizSectionProps) {
 
   const question: QuizQuestion = quiz.questions[current];
   const total = quiz.questions.length;
+
+  const correct = showResult ? answers.filter((a, i) => a === quiz.questions[i].answer).length : 0;
+  const score = showResult ? Math.round((correct / total) * 100) : 0;
+  const passed = showResult && score >= quiz.passingScore;
+
+  // Call onPass in effect to avoid side-effects during render
+  useEffect(() => {
+    if (passed) onPass();
+  }, [passed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelect = (idx: number) => {
     if (submitted) return;
@@ -51,12 +60,6 @@ export default function QuizSection({ quiz, onPass }: QuizSectionProps) {
   };
 
   if (showResult) {
-    const correct = answers.filter((a, i) => a === quiz.questions[i].answer).length;
-    const score = Math.round((correct / total) * 100);
-    const passed = score >= quiz.passingScore;
-
-    if (passed) onPass();
-
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
         <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${passed ? 'bg-green-100' : 'bg-red-100'}`}>

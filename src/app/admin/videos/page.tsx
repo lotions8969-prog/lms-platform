@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { upload } from '@vercel/blob/client';
 import Navigation from '@/components/Navigation';
 import { Video, Trash2, Upload, Play, X, Loader2, FileVideo, CheckCircle2 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export default function VideosPage() {
   const [previewVideo, setPreviewVideo] = useState<VideoItem | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [uploadedName, setUploadedName] = useState('');
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchVideos = async () => {
@@ -36,39 +38,46 @@ export default function VideosPage() {
 
   useEffect(() => { fetchVideos(); }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith('video/')) {
+      setUploadError('動画ファイルを選択してください');
+      return;
+    }
     setUploading(true);
     setUploadProgress(0);
     setUploadedName(file.name);
+    setUploadError('');
 
-    const progressInterval = setInterval(() => {
-      setUploadProgress((p) => Math.min(p + 6, 85));
-    }, 400);
+    const ext = file.name.split('.').pop() || 'mp4';
+    const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9\-_\u3040-\u9FFF]/g, '_');
+    const pathname = `lesson-videos/${safeName}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'lesson');
-      formData.append('name', file.name);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      clearInterval(progressInterval);
-      if (res.ok) {
-        setUploadProgress(100);
-        setTimeout(() => {
-          setUploading(false);
-          setUploadProgress(0);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          fetchVideos();
-        }, 800);
-      } else {
+      await upload(pathname, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+        clientPayload: JSON.stringify({ type: 'lesson' }),
+        multipart: true,
+        onUploadProgress: ({ percentage }) => {
+          setUploadProgress(Math.round(percentage));
+        },
+      });
+      setUploadProgress(100);
+      setTimeout(() => {
         setUploading(false);
-      }
-    } catch {
-      clearInterval(progressInterval);
+        setUploadProgress(0);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        fetchVideos();
+      }, 800);
+    } catch (err) {
+      setUploadError((err as Error).message || 'アップロードに失敗しました');
       setUploading(false);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
   };
 
   const handleDelete = async (video: VideoItem) => {
@@ -88,12 +97,10 @@ export default function VideosPage() {
     setTimeout(() => setCopiedUrl(null), 2000);
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('video/')) return;
-    const fakeEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
-    await handleUpload(fakeEvent);
+    if (file) handleFile(file);
   };
 
   return (
@@ -111,7 +118,7 @@ export default function VideosPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
             <Upload className="w-4 h-4" />動画をアップロード
           </button>
-          <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleUpload} />
+          <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleInputChange} />
         </div>
 
         {/* Upload area */}
@@ -134,10 +141,16 @@ export default function VideosPage() {
             <>
               <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">クリックまたはドラッグ＆ドロップで動画をアップロード</p>
-              <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI, WebM 対応</p>
+              <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI, WebM 対応（最大500MB）</p>
             </>
           )}
         </div>
+
+        {uploadError && (
+          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-6">
+            {uploadError}
+          </div>
+        )}
 
         {/* Video grid */}
         {loading ? (
@@ -153,7 +166,6 @@ export default function VideosPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {videos.map((video) => (
               <div key={video.url} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                {/* Thumbnail */}
                 <div className="relative bg-gray-900 aspect-video cursor-pointer group" onClick={() => setPreviewVideo(video)}>
                   <video src={video.url} className="w-full h-full object-contain" preload="metadata" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
@@ -162,8 +174,6 @@ export default function VideosPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Info */}
                 <div className="p-4">
                   <p className="font-medium text-gray-900 text-sm truncate" title={video.filename}>{video.filename}</p>
                   <div className="flex items-center gap-2 mt-1">
@@ -171,7 +181,6 @@ export default function VideosPage() {
                     <span className="text-xs text-gray-300">·</span>
                     <span className="text-xs text-gray-400">{new Date(video.uploadedAt).toLocaleDateString('ja-JP')}</span>
                   </div>
-
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => copyUrl(video.url)}

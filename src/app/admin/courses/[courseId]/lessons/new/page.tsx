@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { upload } from '@vercel/blob/client';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Plus, Trash2, Save, AlertCircle, Upload, Link2, Video, Loader2, CheckCircle2 } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   const [uploadedFilename, setUploadedFilename] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
   const [order, setOrder] = useState(1);
   const [passingScore, setPassingScore] = useState(70);
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([{ question: '', options: ['', '', '', ''], answer: 0 }]);
@@ -33,33 +35,28 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
     if (!file) return;
     setUploading(true);
     setUploadProgress(0);
+    setUploadError('');
     setError('');
+
+    const ext = file.name.split('.').pop() || 'mp4';
+    const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9\-_\u3040-\u9FFF]/g, '_');
+    const pathname = `lesson-videos/${safeName}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'lesson');
-      formData.append('name', file.name);
-
-      // Simulate progress since fetch doesn't support progress events
-      const progressInterval = setInterval(() => {
-        setUploadProgress((p) => Math.min(p + 8, 85));
-      }, 300);
-
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      clearInterval(progressInterval);
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'アップロードに失敗しました');
-        setUploading(false);
-        return;
-      }
-      const { url, filename } = await res.json();
+      const blob = await upload(pathname, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+        clientPayload: JSON.stringify({ type: 'lesson' }),
+        multipart: true,
+        onUploadProgress: ({ percentage }) => {
+          setUploadProgress(Math.round(percentage));
+        },
+      });
       setUploadProgress(100);
-      setUploadedVideoUrl(url);
-      setUploadedFilename(filename || file.name);
-    } catch {
-      setError('アップロード中にエラーが発生しました');
+      setUploadedVideoUrl(blob.url);
+      setUploadedFilename(file.name);
+    } catch (err) {
+      setUploadError((err as Error).message || 'アップロードに失敗しました');
     } finally {
       setUploading(false);
     }
@@ -176,9 +173,14 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
 
                 {videoInputMode === 'upload' ? (
                   <div>
+                    {uploadError && (
+                      <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg mb-3">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{uploadError}
+                      </div>
+                    )}
                     {!uploadedVideoUrl ? (
                       <div
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => !uploading && fileInputRef.current?.click()}
                         className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
                       >
                         <input
@@ -200,7 +202,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                           <>
                             <Video className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                             <p className="text-sm font-medium text-gray-700">クリックして動画を選択</p>
-                            <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI, WebM など対応</p>
+                            <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI, WebM など対応（最大500MB）</p>
                           </>
                         )}
                       </div>
@@ -212,7 +214,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                             <p className="text-sm font-medium text-gray-800 truncate">{uploadedFilename}</p>
                             <p className="text-xs text-green-600">アップロード完了</p>
                           </div>
-                          <button type="button" onClick={() => { setUploadedVideoUrl(''); setUploadedFilename(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                          <button type="button" onClick={() => { setUploadedVideoUrl(''); setUploadedFilename(''); setUploadError(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                             className="text-xs text-gray-500 hover:text-red-500 underline shrink-0">
                             変更
                           </button>

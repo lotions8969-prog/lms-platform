@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
 import { Camera, CameraOff, Circle, Square, Upload, CheckCircle, Loader2 } from 'lucide-react';
 
 interface RecordingSectionProps {
@@ -17,6 +18,7 @@ export default function RecordingSection({ lessonId, courseId, onUploaded }: Rec
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const mimeTypeRef = useRef<string>('video/webm');
 
   const [state, setState] = useState<RecordingState>('idle');
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -46,10 +48,23 @@ export default function RecordingSection({ lessonId, courseId, onUploaded }: Rec
   const startRecording = () => {
     if (!streamRef.current) return;
     chunksRef.current = [];
-    const mr = new MediaRecorder(streamRef.current, { mimeType: 'video/webm;codecs=vp9,opus' });
+
+    // Pick a supported mimeType (WebM for Chrome/Firefox, MP4 for Safari)
+    const preferred = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4',
+      '',
+    ];
+    const mimeType = preferred.find((m) => m === '' || MediaRecorder.isTypeSupported(m)) ?? '';
+    mimeTypeRef.current = mimeType || 'video/webm';
+
+    const options = mimeType ? { mimeType } : {};
+    const mr = new MediaRecorder(streamRef.current, options);
     mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     mr.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
       setRecordedBlob(blob);
       if (previewRef.current) previewRef.current.src = URL.createObjectURL(blob);
       stopCamera();
@@ -62,18 +77,19 @@ export default function RecordingSection({ lessonId, courseId, onUploaded }: Rec
 
   const stopRecording = () => mediaRecorderRef.current?.stop();
 
-  const upload = async () => {
+  const handleUpload = async () => {
     if (!recordedBlob) return;
     setState('uploading');
-    setUploadProgress(10);
+    setUploadProgress(0);
     try {
-      const formData = new FormData();
-      formData.append('file', recordedBlob, 'recording.webm');
-      setUploadProgress(30);
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      setUploadProgress(70);
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const { url } = await uploadRes.json();
+      const ext = mimeTypeRef.current.includes('mp4') ? 'mp4' : 'webm';
+      const pathname = `videos/recording_${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
+      const { url } = await upload(pathname, recordedBlob, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+        multipart: true,
+        onUploadProgress: ({ percentage }) => setUploadProgress(Math.round(percentage)),
+      });
       await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,7 +132,7 @@ export default function RecordingSection({ lessonId, courseId, onUploaded }: Rec
           <video ref={previewRef} controls className="w-full rounded-lg bg-black aspect-video" />
           <div className="flex gap-3">
             <button onClick={reset} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">撮り直す</button>
-            <button onClick={upload} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            <button onClick={handleUpload} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               <Upload className="w-4 h-4" />提出する
             </button>
           </div>
