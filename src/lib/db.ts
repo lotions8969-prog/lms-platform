@@ -1,4 +1,4 @@
-import { put, head, list } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 import type { User, Course, Lesson, Quiz, Submission } from './types';
 
 const STORE = process.env.BLOB_READ_WRITE_TOKEN!;
@@ -7,8 +7,14 @@ async function readJson<T>(key: string): Promise<T[]> {
   try {
     const { blobs } = await list({ prefix: key, token: STORE });
     if (blobs.length === 0) return [];
+    // Sort by uploadedAt descending to get the latest
+    blobs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
     const blob = blobs[0];
-    const res = await fetch(blob.url);
+    // Bypass CDN cache with no-store and cache-busting timestamp
+    const res = await fetch(`${blob.url}?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     if (!res.ok) return [];
     return await res.json();
   } catch {

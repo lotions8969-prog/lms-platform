@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/login', '/register', '/api/auth/login', '/api/auth/register'];
+const publicPagePaths = ['/login', '/register'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // API routes handle their own auth — never redirect them
+  if (pathname.startsWith('/api/')) return NextResponse.next();
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
     return NextResponse.next();
   }
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+
+  const isPublic = publicPagePaths.some((p) => pathname.startsWith(p));
   const token = request.cookies.get('lms-session')?.value;
 
   if (!isPublic && !token) {

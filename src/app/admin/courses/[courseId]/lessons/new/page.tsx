@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { use } from 'react';
 
@@ -19,17 +19,39 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   const [passingScore, setPassingScore] = useState(70);
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([{ question: '', options: ['', '', '', ''], answer: 0 }]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    await fetch('/api/lessons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, type, title, description: description || undefined, videoUrl: type === 'video' ? videoUrl : undefined, order, questions: type === 'quiz' ? questions : undefined, passingScore }),
-    });
-    router.replace(`/admin/courses/${courseId}/lessons`);
+    try {
+      const res = await fetch('/api/lessons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId,
+          type,
+          title,
+          description: description || undefined,
+          videoUrl: type === 'video' ? videoUrl : undefined,
+          order,
+          questions: type === 'quiz' ? questions : undefined,
+          passingScore,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || `エラーが発生しました (${res.status})`);
+        setLoading(false);
+        return;
+      }
+      router.replace(`/admin/courses/${courseId}/lessons`);
+    } catch (err) {
+      setError('ネットワークエラーが発生しました');
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,6 +63,14 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
         </Link>
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           <h1 className="text-xl font-bold text-gray-900 mb-6">新しいレッスンを追加</h1>
+
+          {error && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-5">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">レッスンタイプ</label>
@@ -52,58 +82,104 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                 ))}
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">タイトル <span className="text-red-500">*</span></label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例：第1回 はじめてのレッスン" />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">説明（任意）</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">表示順</label>
               <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} min={1} className="w-24 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
+
             {type === 'video' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">動画URL <span className="text-red-500">*</span></label>
-                <input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} required={type === 'video'} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://..." />
+                {/* type="text" to avoid HTML5 URL validation blocking submission */}
+                <input
+                  type="text"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="https://example.com/video.mp4 または YouTube URL"
+                />
+                <p className="text-xs text-gray-400 mt-1">mp4/webm ファイルのURL、またはYouTube埋め込みURLを入力</p>
               </div>
             )}
+
             {type === 'quiz' && (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">合格ライン（%）</label>
                   <input type="number" value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value))} min={1} max={100} className="w-24 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
+
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-medium text-gray-800">問題一覧</h3>
-                    <button type="button" onClick={() => setQuestions([...questions, { question: '', options: ['', '', '', ''], answer: 0 }])} className="flex items-center gap-1 text-sm text-blue-600">
+                    <button type="button" onClick={() => setQuestions([...questions, { question: '', options: ['', '', '', ''], answer: 0 }])} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700">
                       <Plus className="w-4 h-4" />問題を追加
                     </button>
                   </div>
+
                   {questions.map((q, qi) => (
                     <div key={qi} className="border border-gray-200 rounded-xl p-4 mb-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700">問題 {qi + 1}</span>
-                        {questions.length > 1 && <button type="button" onClick={() => setQuestions(questions.filter((_, i) => i !== qi))} className="text-red-400"><Trash2 className="w-4 h-4" /></button>}
+                        {questions.length > 1 && (
+                          <button type="button" onClick={() => setQuestions(questions.filter((_, i) => i !== qi))} className="text-red-400 hover:text-red-600">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
-                      <input type="text" value={q.question} onChange={(e) => { const u=[...questions]; u[qi].question=e.target.value; setQuestions(u); }} required placeholder="問題文を入力" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                      <input
+                        type="text"
+                        value={q.question}
+                        onChange={(e) => { const u = [...questions]; u[qi].question = e.target.value; setQuestions(u); }}
+                        required
+                        placeholder="問題文を入力"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
                       {q.options.map((opt, oi) => (
                         <div key={oi} className="flex items-center gap-2">
-                          <input type="radio" name={`answer-${qi}`} checked={q.answer===oi} onChange={() => { const u=[...questions]; u[qi].answer=oi; setQuestions(u); }} />
-                          <input type="text" value={opt} onChange={(e) => { const u=[...questions]; u[qi].options[oi]=e.target.value; setQuestions(u); }} required placeholder={`選択肢 ${String.fromCharCode(65+oi)}`} className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                          <input
+                            type="radio"
+                            name={`answer-${qi}`}
+                            checked={q.answer === oi}
+                            onChange={() => { const u = [...questions]; u[qi].answer = oi; setQuestions(u); }}
+                            className="accent-blue-600"
+                          />
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => { const u = [...questions]; u[qi].options[oi] = e.target.value; setQuestions(u); }}
+                            required
+                            placeholder={`選択肢 ${String.fromCharCode(65 + oi)}`}
+                            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          />
                         </div>
                       ))}
-                      <p className="text-xs text-gray-400">ラジオボタンで正解を選択</p>
+                      <p className="text-xs text-gray-400">左のラジオボタンで正解を選択してください</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-              <Save className="w-4 h-4" />{loading ? '保存中...' : 'レッスンを保存'}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {loading ? '保存中...' : 'レッスンを保存'}
             </button>
           </form>
         </div>
