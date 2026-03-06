@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -20,7 +20,7 @@ const navItems = [
   { href: '/admin/videos', label: '動画ライブラリ', icon: FileVideo },
 ];
 
-function SidebarInner({ onNav }: { onNav?: () => void }) {
+function SidebarInner({ onNav, closeButton }: { onNav?: () => void; closeButton?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -39,14 +39,17 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-zinc-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm leading-none tracking-tight">ENISHI</p>
+              <p className="text-violet-400 text-[10px] font-semibold tracking-widest mt-0.5">ADMIN PANEL</p>
+            </div>
           </div>
-          <div>
-            <p className="text-white font-bold text-sm leading-none tracking-tight">ENISHI</p>
-            <p className="text-violet-400 text-[10px] font-semibold tracking-widest mt-0.5">ADMIN PANEL</p>
-          </div>
+          {closeButton}
         </div>
       </div>
 
@@ -109,16 +112,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       {mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/70 z-40 md:hidden" onClick={() => setMobileOpen(false)} />
-          <div className="fixed left-0 top-0 h-screen w-56 bg-zinc-900 border-r border-zinc-800 z-50 md:hidden flex flex-col">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800">
-              <p className="text-white font-bold text-sm">ENISHI ADMIN</p>
-              <button onClick={() => setMobileOpen(false)} className="p-1 text-zinc-400 hover:text-zinc-200">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <SidebarInner onNav={() => setMobileOpen(false)} />
-            </div>
+          <div className="fixed left-0 top-0 h-screen w-56 bg-zinc-900 border-r border-zinc-800 z-50 md:hidden flex flex-col overflow-y-auto">
+            <SidebarInner onNav={() => setMobileOpen(false)} closeButton={<button onClick={() => setMobileOpen(false)} className="p-1 text-zinc-400 hover:text-zinc-200"><X className="w-5 h-5" /></button>} />
           </div>
         </>
       )}

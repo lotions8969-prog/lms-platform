@@ -69,11 +69,18 @@ export async function deleteUser(id: string): Promise<void> {
   await deleteRecord(`db/users/${id}.json`);
 }
 export async function updateUserProgress(userId: string, courseId: string, lessonId: string): Promise<void> {
-  const user = await getUserById(userId);
+  const [user, courseLessons] = await Promise.all([
+    getUserById(userId),
+    getLessons(courseId),
+  ]);
   if (!user) return;
   if (!user.progress[courseId]) user.progress[courseId] = { completedLessons: [], quizScores: {}, completed: false };
   if (!user.progress[courseId].completedLessons.includes(lessonId)) {
     user.progress[courseId].completedLessons.push(lessonId);
+  }
+  // Auto-complete course when all lessons are done
+  if (courseLessons.length > 0 && user.progress[courseId].completedLessons.length >= courseLessons.length) {
+    user.progress[courseId].completed = true;
   }
   await writeRecord(`db/users/${userId}.json`, user);
 }

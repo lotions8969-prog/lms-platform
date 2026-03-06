@@ -69,17 +69,17 @@ export default function VideoPlayer({ videoUrl, onEnded }: VideoPlayerProps) {
           max="100"
           value={progress}
           onChange={handleSeek}
-          className="w-full h-1 mb-3 accent-blue-500"
+          className="w-full h-1 mb-3 accent-violet-500"
         />
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
+          <button onClick={togglePlay} className="text-white hover:text-violet-400 transition-colors">
             {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
           </button>
-          <button onClick={toggleMute} className="text-white hover:text-blue-400 transition-colors">
+          <button onClick={toggleMute} className="text-white hover:text-violet-400 transition-colors">
             {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
           <div className="flex-1" />
-          <button onClick={handleFullscreen} className="text-white hover:text-blue-400 transition-colors">
+          <button onClick={handleFullscreen} className="text-white hover:text-violet-400 transition-colors">
             <Maximize className="w-5 h-5" />
           </button>
         </div>
