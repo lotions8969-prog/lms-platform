@@ -12,6 +12,7 @@ export async function GET() {
       id: user.id,
       email: user.email,
       role: user.role,
+      displayName: user.displayName,
       progress: user.progress,
     },
   });

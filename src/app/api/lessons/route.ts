@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { getLessons, saveLesson, deleteLesson, saveQuiz } from '@/lib/db';
+import { getLessons, getLessonById, saveLesson, deleteLesson, saveQuiz } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import type { Lesson, Quiz } from '@/lib/types';
 
@@ -38,6 +38,19 @@ export async function POST(req: NextRequest) {
     };
     await saveQuiz(quiz);
   }
+  return NextResponse.json(lesson);
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') {
+    return NextResponse.json({ error: '権限がありません' }, { status: 403 });
+  }
+  const { id, order } = await req.json();
+  const lesson = await getLessonById(id);
+  if (!lesson) return NextResponse.json({ error: 'レッスンが見つかりません' }, { status: 404 });
+  lesson.order = order;
+  await saveLesson(lesson);
   return NextResponse.json(lesson);
 }
 

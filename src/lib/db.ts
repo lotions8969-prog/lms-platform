@@ -1,5 +1,5 @@
 import { put, del, list } from '@vercel/blob';
-import type { User, Course, Lesson, Quiz, Submission } from './types';
+import type { User, Course, Lesson, Quiz, Submission, Survey, SurveyResponse } from './types';
 
 const STORE = process.env.BLOB_READ_WRITE_TOKEN!;
 
@@ -64,6 +64,9 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 export async function saveUser(user: User): Promise<void> {
   await writeRecord(`db/users/${user.id}.json`, user);
+}
+export async function deleteUser(id: string): Promise<void> {
+  await deleteRecord(`db/users/${id}.json`);
 }
 export async function updateUserProgress(userId: string, courseId: string, lessonId: string): Promise<void> {
   const user = await getUserById(userId);
@@ -130,4 +133,31 @@ export async function getSubmissions(): Promise<Submission[]> {
 }
 export async function saveSubmission(sub: Submission): Promise<void> {
   await writeRecord(`db/submissions/${sub.id}.json`, sub);
+}
+
+// ── Surveys ────────────────────────────────────────────────────────────────
+
+export async function getSurveys(): Promise<Survey[]> {
+  return listAll<Survey>('db/surveys/');
+}
+export async function getSurveyById(id: string): Promise<Survey | null> {
+  const { blobs } = await list({ prefix: `db/surveys/${id}.json`, token: STORE });
+  if (blobs.length === 0) return null;
+  return fetchBlob<Survey>(blobs[0].url);
+}
+export async function saveSurvey(survey: Survey): Promise<void> {
+  await writeRecord(`db/surveys/${survey.id}.json`, survey);
+}
+export async function deleteSurvey(id: string): Promise<void> {
+  await deleteRecord(`db/surveys/${id}.json`);
+}
+
+// ── Survey Responses ────────────────────────────────────────────────────────
+
+export async function getSurveyResponses(surveyId: string): Promise<SurveyResponse[]> {
+  const responses = await listAll<SurveyResponse>(`db/survey-responses/${surveyId}/`);
+  return responses.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+export async function saveSurveyResponse(response: SurveyResponse): Promise<void> {
+  await writeRecord(`db/survey-responses/${response.surveyId}/${response.id}.json`, response);
 }

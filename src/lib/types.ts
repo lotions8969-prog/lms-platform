@@ -66,3 +66,33 @@ export interface SessionUser {
   role: 'admin' | 'student';
   displayName?: string;
 }
+
+// ── Survey ──────────────────────────────────────────────────────────────────
+
+export interface SurveyQuestion {
+  id: string;
+  type: 'text' | 'single' | 'multiple' | 'rating';
+  question: string;
+  options?: string[];
+  required: boolean;
+}
+
+export interface Survey {
+  id: string;
+  title: string;
+  description?: string;
+  questions: SurveyQuestion[];
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SurveyResponse {
+  id: string;
+  surveyId: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  answers: Record<string, string | string[]>;
+  createdAt: string;
+}

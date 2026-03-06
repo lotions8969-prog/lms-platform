@@ -6,6 +6,7 @@ interface UserData {
   id: string;
   email: string;
   role: 'admin' | 'student';
+  displayName?: string;
   progress: Record<string, { completedLessons: string[]; quizScores: Record<string, number>; completed: boolean }>;
 }
 
