@@ -104,18 +104,18 @@ export default function VideosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-950">
       <Navigation />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileVideo className="w-7 h-7 text-blue-600" />動画ライブラリ
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <FileVideo className="w-6 h-6 text-violet-400" />動画ライブラリ
             </h1>
-            <p className="text-gray-500 mt-1">{videos.length}件の動画</p>
+            <p className="text-zinc-500 text-sm mt-1">{videos.length}件の動画</p>
           </div>
           <button onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-violet-900/20">
             <Upload className="w-4 h-4" />動画をアップロード
           </button>
           <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleInputChange} />
@@ -126,28 +126,30 @@ export default function VideosPage() {
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => !uploading && fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-6 mb-8 text-center transition-colors cursor-pointer ${uploading ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'}`}
+          className={`border-2 border-dashed rounded-2xl p-8 mb-8 text-center transition-all cursor-pointer ${
+            uploading ? 'border-violet-700 bg-violet-900/10' : 'border-zinc-800 hover:border-violet-700 hover:bg-violet-900/5'
+          }`}
         >
           {uploading ? (
             <div className="space-y-3">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
-              <p className="text-sm text-gray-700 font-medium">「{uploadedName}」をアップロード中... {uploadProgress}%</p>
-              {uploadProgress === 100 && <p className="text-xs text-green-600 flex items-center justify-center gap-1"><CheckCircle2 className="w-4 h-4" />完了！</p>}
-              <div className="w-full max-w-xs mx-auto bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+              <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
+              <p className="text-sm text-zinc-300 font-medium">「{uploadedName}」をアップロード中... {uploadProgress}%</p>
+              {uploadProgress === 100 && <p className="text-xs text-emerald-400 flex items-center justify-center gap-1"><CheckCircle2 className="w-4 h-4" />完了！</p>}
+              <div className="w-full max-w-xs mx-auto bg-zinc-800 rounded-full h-1.5">
+                <div className="bg-violet-500 h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
               </div>
             </div>
           ) : (
             <>
-              <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">クリックまたはドラッグ＆ドロップで動画をアップロード</p>
-              <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI, WebM 対応（最大500MB）</p>
+              <Upload className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+              <p className="text-sm text-zinc-500">クリックまたはドラッグ＆ドロップで動画をアップロード</p>
+              <p className="text-xs text-zinc-700 mt-1">MP4, MOV, AVI, WebM 対応（最大500MB）</p>
             </>
           )}
         </div>
 
         {uploadError && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-6">
+          <div className="bg-rose-950/40 border border-rose-900/50 text-rose-400 text-sm px-4 py-3 rounded-xl mb-6">
             {uploadError}
           </div>
         )}
@@ -155,42 +157,46 @@ export default function VideosPage() {
         {/* Video grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-xl h-64 animate-pulse" />)}
+            {[...Array(6)].map((_, i) => <div key={i} className="bg-zinc-900 rounded-2xl h-64 animate-pulse" />)}
           </div>
         ) : videos.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-zinc-600">
             <Video className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p>動画がまだアップロードされていません</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {videos.map((video) => (
-              <div key={video.url} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="relative bg-gray-900 aspect-video cursor-pointer group" onClick={() => setPreviewVideo(video)}>
+              <div key={video.url} className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all">
+                <div className="relative bg-black aspect-video cursor-pointer group" onClick={() => setPreviewVideo(video)}>
                   <video src={video.url} className="w-full h-full object-contain" preload="metadata" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                      <Play className="w-6 h-6 text-white ml-0.5" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+                      <Play className="w-5 h-5 text-white ml-0.5" />
                     </div>
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="font-medium text-gray-900 text-sm truncate" title={video.filename}>{video.filename}</p>
+                  <p className="font-medium text-zinc-200 text-sm truncate" title={video.filename}>{video.filename}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-400">{formatBytes(video.size)}</span>
-                    <span className="text-xs text-gray-300">·</span>
-                    <span className="text-xs text-gray-400">{new Date(video.uploadedAt).toLocaleDateString('ja-JP')}</span>
+                    <span className="text-xs text-zinc-600">{formatBytes(video.size)}</span>
+                    <span className="text-xs text-zinc-700">·</span>
+                    <span className="text-xs text-zinc-600">{new Date(video.uploadedAt).toLocaleDateString('ja-JP')}</span>
                   </div>
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => copyUrl(video.url)}
-                      className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${copiedUrl === video.url ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${
+                        copiedUrl === video.url
+                          ? 'border-emerald-800 bg-emerald-950/40 text-emerald-400'
+                          : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                      }`}
                     >
                       {copiedUrl === video.url ? '✓ コピー済み' : 'URLをコピー'}
                     </button>
                     <button
                       onClick={() => handleDelete(video)}
-                      className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-zinc-700 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -205,10 +211,10 @@ export default function VideosPage() {
       {/* Preview Modal */}
       {previewVideo && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setPreviewVideo(null)}>
-          <div className="bg-white rounded-2xl overflow-hidden max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b">
-              <p className="font-medium text-gray-900 truncate pr-4">{previewVideo.filename}</p>
-              <button onClick={() => setPreviewVideo(null)} className="text-gray-400 hover:text-gray-600">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <p className="font-medium text-zinc-200 truncate pr-4">{previewVideo.filename}</p>
+              <button onClick={() => setPreviewVideo(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -217,12 +223,14 @@ export default function VideosPage() {
               <input
                 readOnly
                 value={previewVideo.url}
-                className="flex-1 text-xs px-3 py-2 bg-gray-100 rounded-lg text-gray-600 font-mono"
+                className="flex-1 text-xs px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-400 font-mono"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button
                 onClick={() => copyUrl(previewVideo.url)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${copiedUrl === previewVideo.url ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                  copiedUrl === previewVideo.url ? 'bg-emerald-600 text-white' : 'bg-violet-600 hover:bg-violet-500 text-white'
+                }`}
               >
                 {copiedUrl === previewVideo.url ? '✓ コピー済み' : 'URLをコピー'}
               </button>

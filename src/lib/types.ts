@@ -19,6 +19,7 @@ export interface Course {
   title: string;
   description: string;
   thumbnail?: string;
+  published: boolean;
   createdAt: string;
   updatedAt: string;
 }
