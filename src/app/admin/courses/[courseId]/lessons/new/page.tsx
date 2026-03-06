@@ -1,27 +1,39 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { upload } from '@vercel/blob/client';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Trash2, Save, AlertCircle, Upload, Link2, Video, Loader2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, AlertCircle, Upload, Link2, Video, Loader2, CheckCircle2, Library, Play, X } from 'lucide-react';
 import Link from 'next/link';
 import { use } from 'react';
 
 interface QuizQuestionInput { question: string; options: string[]; answer: number; }
+interface VideoItem { url: string; pathname: string; filename: string; size: number; uploadedAt: string; }
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function NewLessonPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
   const [type, setType] = useState<'video' | 'quiz'>('video');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [videoInputMode, setVideoInputMode] = useState<'url' | 'upload'>('upload');
+  const [videoInputMode, setVideoInputMode] = useState<'upload' | 'library' | 'url'>('upload');
   const [videoUrl, setVideoUrl] = useState('');
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState('');
   const [uploadedFilename, setUploadedFilename] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
+  // Library
+  const [libraryVideos, setLibraryVideos] = useState<VideoItem[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [selectedLibraryVideo, setSelectedLibraryVideo] = useState<VideoItem | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<VideoItem | null>(null);
+  // Form
   const [order, setOrder] = useState(1);
   const [passingScore, setPassingScore] = useState(70);
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([{ question: '', options: ['', '', '', ''], answer: 0 }]);
@@ -29,6 +41,18 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const loadLibrary = async () => {
+    if (libraryVideos.length > 0) return;
+    setLibraryLoading(true);
+    const res = await fetch('/api/videos');
+    if (res.ok) setLibraryVideos(await res.json());
+    setLibraryLoading(false);
+  };
+
+  useEffect(() => {
+    if (videoInputMode === 'library') loadLibrary();
+  }, [videoInputMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,9 +72,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
         handleUploadUrl: '/api/upload',
         clientPayload: JSON.stringify({ type: 'lesson' }),
         multipart: true,
-        onUploadProgress: ({ percentage }) => {
-          setUploadProgress(Math.round(percentage));
-        },
+        onUploadProgress: ({ percentage }) => setUploadProgress(Math.round(percentage)),
       });
       setUploadProgress(100);
       setUploadedVideoUrl(blob.url);
@@ -62,7 +84,10 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
     }
   };
 
-  const finalVideoUrl = videoInputMode === 'upload' ? uploadedVideoUrl : videoUrl;
+  const finalVideoUrl =
+    videoInputMode === 'upload' ? uploadedVideoUrl :
+    videoInputMode === 'library' ? (selectedLibraryVideo?.url || '') :
+    videoUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,9 +104,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          courseId,
-          type,
-          title,
+          courseId, type, title,
           description: description || undefined,
           videoUrl: type === 'video' ? finalVideoUrl : undefined,
           order,
@@ -115,8 +138,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
 
           {error && (
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-5">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              {error}
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}
             </div>
           )}
 
@@ -160,18 +182,25 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
             {type === 'video' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">動画 <span className="text-red-500">*</span></label>
-                <div className="flex gap-2 mb-3">
-                  <button type="button" onClick={() => { setVideoInputMode('upload'); setVideoUrl(''); }}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${videoInputMode === 'upload' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                    <Upload className="w-4 h-4" />ファイルアップロード
+
+                {/* Mode tabs */}
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  <button type="button" onClick={() => { setVideoInputMode('upload'); }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${videoInputMode === 'upload' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                    <Upload className="w-4 h-4" />アップロード
                   </button>
-                  <button type="button" onClick={() => { setVideoInputMode('url'); setUploadedVideoUrl(''); setUploadedFilename(''); }}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${videoInputMode === 'url' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                  <button type="button" onClick={() => { setVideoInputMode('library'); }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${videoInputMode === 'library' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                    <Library className="w-4 h-4" />ライブラリから選択
+                  </button>
+                  <button type="button" onClick={() => { setVideoInputMode('url'); }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${videoInputMode === 'url' ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
                     <Link2 className="w-4 h-4" />URLを入力
                   </button>
                 </div>
 
-                {videoInputMode === 'upload' ? (
+                {/* Upload */}
+                {videoInputMode === 'upload' && (
                   <div>
                     {uploadError && (
                       <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg mb-3">
@@ -179,17 +208,9 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                       </div>
                     )}
                     {!uploadedVideoUrl ? (
-                      <div
-                        onClick={() => !uploading && fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                      >
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={handleFileSelect}
-                        />
+                      <div onClick={() => !uploading && fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                        <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileSelect} />
                         {uploading ? (
                           <div className="space-y-3">
                             <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto" />
@@ -215,15 +236,72 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                             <p className="text-xs text-green-600">アップロード完了</p>
                           </div>
                           <button type="button" onClick={() => { setUploadedVideoUrl(''); setUploadedFilename(''); setUploadError(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                            className="text-xs text-gray-500 hover:text-red-500 underline shrink-0">
-                            変更
-                          </button>
+                            className="text-xs text-gray-500 hover:text-red-500 underline shrink-0">変更</button>
                         </div>
                         <video src={uploadedVideoUrl} controls className="w-full rounded-lg max-h-40 bg-black" />
                       </div>
                     )}
                   </div>
-                ) : (
+                )}
+
+                {/* Library picker */}
+                {videoInputMode === 'library' && (
+                  <div>
+                    {selectedLibraryVideo ? (
+                      <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{selectedLibraryVideo.filename}</p>
+                            <p className="text-xs text-blue-600">ライブラリから選択中</p>
+                          </div>
+                          <button type="button" onClick={() => setSelectedLibraryVideo(null)}
+                            className="text-xs text-gray-500 hover:text-red-500 underline shrink-0">変更</button>
+                        </div>
+                        <video src={selectedLibraryVideo.url} controls className="w-full rounded-lg max-h-40 bg-black" />
+                      </div>
+                    ) : libraryLoading ? (
+                      <div className="flex items-center justify-center py-12 text-gray-400">
+                        <Loader2 className="w-6 h-6 animate-spin mr-2" />読み込み中...
+                      </div>
+                    ) : libraryVideos.length === 0 ? (
+                      <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
+                        <Video className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">動画ライブラリに動画がありません</p>
+                        <Link href="/admin/videos" target="_blank" className="text-xs text-blue-500 hover:underline mt-1 inline-block">
+                          動画ライブラリでアップロードする →
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="border border-gray-200 rounded-xl overflow-hidden">
+                        <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                          {libraryVideos.map((v) => (
+                            <button key={v.url} type="button" onClick={() => setSelectedLibraryVideo(v)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors text-left group">
+                              <div className="relative w-20 h-12 bg-gray-900 rounded-lg overflow-hidden shrink-0">
+                                <video src={v.url} className="w-full h-full object-cover" preload="metadata" />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                                  <Play className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-800 truncate">{v.filename}</p>
+                                <p className="text-xs text-gray-400">{formatBytes(v.size)} · {new Date(v.uploadedAt).toLocaleDateString('ja-JP')}</p>
+                              </div>
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setPreviewVideo(v); }}
+                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shrink-0">
+                                <Play className="w-4 h-4" />
+                              </button>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL input */}
+                {videoInputMode === 'url' && (
                   <div>
                     <input type="text" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -290,6 +368,26 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
           </form>
         </div>
       </div>
+
+      {/* Preview modal */}
+      {previewVideo && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setPreviewVideo(null)}>
+          <div className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <p className="font-medium text-gray-900 truncate pr-4">{previewVideo.filename}</p>
+              <button onClick={() => setPreviewVideo(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <video src={previewVideo.url} controls autoPlay className="w-full aspect-video bg-black" />
+            <div className="p-4 flex justify-end gap-3">
+              <button onClick={() => setPreviewVideo(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">閉じる</button>
+              <button onClick={() => { setSelectedLibraryVideo(previewVideo); setPreviewVideo(null); }}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                この動画を使用する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
