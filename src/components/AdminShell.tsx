@@ -99,7 +99,16 @@ function SidebarInner({ onNav, closeButton }: { onNav?: () => void; closeButton?
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading && user && user.role !== 'admin') {
+      router.replace('/courses');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user || user.role !== 'admin') return null;
 
   return (
     <div className="min-h-screen bg-zinc-950 flex">
