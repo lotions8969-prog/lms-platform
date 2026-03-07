@@ -58,12 +58,12 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
 
   if (submitted) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
-        <div className="w-14 h-14 bg-emerald-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-7 h-7 text-emerald-400" />
+      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+        <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-7 h-7 text-emerald-500" />
         </div>
-        <h3 className="text-lg font-bold text-white mb-1">回答を送信しました</h3>
-        <p className="text-zinc-500 text-sm">ご協力ありがとうございました</p>
+        <h3 className="text-lg font-bold text-gray-900 mb-1">回答を送信しました</h3>
+        <p className="text-gray-500 text-sm">ご協力ありがとうございました</p>
       </div>
     );
   }
@@ -71,25 +71,25 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <ClipboardList className="w-5 h-5 text-violet-400" />
-        <h3 className="font-semibold text-zinc-100">{survey.title}</h3>
+        <ClipboardList className="w-5 h-5 text-violet-500" />
+        <h3 className="font-semibold text-gray-800">{survey.title}</h3>
       </div>
-      {survey.description && <p className="text-sm text-zinc-500">{survey.description}</p>}
+      {survey.description && <p className="text-sm text-gray-500">{survey.description}</p>}
 
       {error && (
-        <div className="flex items-center gap-2 bg-rose-950/40 border border-rose-900/50 text-rose-400 px-4 py-3 rounded-xl text-sm">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />{error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {survey.questions.map((q, qi) => (
-          <div key={q.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-            <p className="font-semibold text-zinc-100 text-sm mb-0.5">
+          <div key={q.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+            <p className="font-semibold text-gray-800 text-sm mb-0.5">
               Q{qi + 1}. {q.question}
-              {q.required && <span className="text-rose-500 ml-1">*</span>}
+              {q.required && <span className="text-red-500 ml-1">*</span>}
             </p>
-            <p className="text-xs text-zinc-600 mb-4">
+            <p className="text-xs text-gray-400 mb-4">
               {q.type === 'text' ? '自由記入' : q.type === 'single' ? '1つ選択' : q.type === 'multiple' ? '複数選択可' : '1〜5で評価'}
             </p>
 
@@ -98,7 +98,7 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
                 value={(answers[q.id] as string) || ''}
                 onChange={(e) => setAnswer(q.id, e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent resize-none transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"
                 placeholder="回答を入力..."
               />
             )}
@@ -106,16 +106,16 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
             {q.type === 'single' && q.options && (
               <div className="space-y-2">
                 {q.options.map((opt) => (
-                  <label key={opt} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-                    answers[q.id] === opt ? 'bg-violet-900/30 border border-violet-700' : 'bg-zinc-800 border border-zinc-700 hover:border-zinc-600'
+                  <label key={opt} className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+                    answers[q.id] === opt ? 'bg-violet-50 border border-violet-300' : 'bg-gray-50 border border-gray-200 hover:border-gray-300'
                   }`}>
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      answers[q.id] === opt ? 'border-violet-400 bg-violet-400' : 'border-zinc-500'
+                      answers[q.id] === opt ? 'border-violet-500 bg-violet-500' : 'border-gray-300'
                     }`}>
                       {answers[q.id] === opt && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <input type="radio" className="hidden" name={q.id} value={opt} onChange={() => setAnswer(q.id, opt)} />
-                    <span className="text-sm text-zinc-200">{opt}</span>
+                    <span className="text-sm text-gray-700">{opt}</span>
                   </label>
                 ))}
               </div>
@@ -126,16 +126,16 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
                 {q.options.map((opt) => {
                   const checked = ((answers[q.id] as string[]) || []).includes(opt);
                   return (
-                    <label key={opt} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-                      checked ? 'bg-violet-900/30 border border-violet-700' : 'bg-zinc-800 border border-zinc-700 hover:border-zinc-600'
+                    <label key={opt} className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all ${
+                      checked ? 'bg-violet-50 border border-violet-300' : 'bg-gray-50 border border-gray-200 hover:border-gray-300'
                     }`}>
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                        checked ? 'border-violet-400 bg-violet-400' : 'border-zinc-500'
+                        checked ? 'border-violet-500 bg-violet-500' : 'border-gray-300'
                       }`}>
                         {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                       </div>
                       <input type="checkbox" className="hidden" checked={checked} onChange={() => toggleMultiple(q.id, opt)} />
-                      <span className="text-sm text-zinc-200">{opt}</span>
+                      <span className="text-sm text-gray-700">{opt}</span>
                     </label>
                   );
                 })}
@@ -148,8 +148,8 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
                   const selected = Number(answers[q.id]) === n;
                   return (
                     <button key={n} type="button" onClick={() => setAnswer(q.id, String(n))}
-                      className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
-                        selected ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                      className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${
+                        selected ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}>
                       {n}
                     </button>
@@ -161,7 +161,7 @@ export default function SurveyLessonSection({ survey, lessonId, onComplete }: Su
         ))}
 
         <button type="submit" disabled={submitting}
-          className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-violet-900/30 disabled:opacity-50">
+          className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-semibold text-sm transition-all disabled:opacity-50">
           {submitting ? '送信中...' : '回答を送信してレッスンを完了'}
         </button>
       </form>

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Course, Lesson } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
-import { CheckCircle, Lock, Play, FileQuestion, ChevronLeft, Trophy, ArrowRight } from 'lucide-react';
+import { CheckCircle, Lock, Play, FileQuestion, ChevronLeft, Trophy, ClipboardList, BookOpen } from 'lucide-react';
 import { use } from 'react';
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
@@ -33,58 +33,58 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const nextLesson = lessons.find((l) => !isDone(l.id));
 
   if (loading) return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
       <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse space-y-3">
-        <div className="h-48 bg-zinc-900 rounded-2xl" />
-        {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-zinc-900 rounded-xl" />)}
+        <div className="h-48 bg-white rounded-xl" />
+        {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-white rounded-xl" />)}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
 
       {/* Course header */}
-      <div className="border-b border-zinc-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-          <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-zinc-600 hover:text-zinc-300 mb-6 transition-colors">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+          <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 mb-5 transition-colors">
             <ChevronLeft className="w-4 h-4" />コース一覧
           </Link>
-          {course && (
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-white leading-tight">{course.title}</h1>
-                <p className="text-zinc-500 mt-2 text-sm leading-relaxed">{course.description}</p>
-                <p className="text-zinc-600 text-sm mt-3">{lessons.length} レッスン · {completedLessons.length} 完了</p>
-              </div>
 
-              <div className="flex flex-col items-start sm:items-end gap-3 shrink-0">
-                {/* Progress */}
-                <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-4 py-3 rounded-2xl">
-                  <div className="relative w-11 h-11">
-                    <svg className="w-11 h-11 -rotate-90" viewBox="0 0 44 44">
-                      <circle cx="22" cy="22" r="18" fill="none" stroke="#27272A" strokeWidth="3.5" />
-                      <circle cx="22" cy="22" r="18" fill="none" stroke={allDone ? '#10B981' : '#8B5CF6'}
-                        strokeWidth="3.5" strokeDasharray={`${2 * Math.PI * 18}`}
-                        strokeDashoffset={`${2 * Math.PI * 18 * (1 - progress / 100)}`}
-                        strokeLinecap="round" />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{progress}%</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">{allDone ? '完了！🎉' : '進捗'}</p>
-                    <p className="text-zinc-600 text-xs">{completedLessons.length}/{lessons.length}</p>
-                  </div>
+          {course && (
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Thumbnail */}
+              {course.thumbnail && (
+                <div className="shrink-0">
+                  <img src={course.thumbnail} alt={course.title} className="w-full sm:w-48 h-32 object-cover rounded-xl" />
                 </div>
-                {nextLesson && (
-                  <Link href={`/courses/${courseId}/lessons/${nextLesson.id}`}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-violet-900/30">
-                    <Play className="w-4 h-4" />
-                    {completedLessons.length === 0 ? '学習を開始' : '続きから'}
-                  </Link>
-                )}
+              )}
+              <div className="flex-1">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">{course.title}</h1>
+                {course.description && <p className="text-gray-500 mt-1.5 text-sm leading-relaxed">{course.description}</p>}
+                <p className="text-gray-400 text-sm mt-2">{lessons.length} セッション · {completedLessons.length} 完了</p>
+
+                <div className="mt-4 flex items-center gap-4">
+                  <div className="flex-1 max-w-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-xs text-gray-400">進捗</span>
+                      <span className="text-xs font-semibold text-violet-600">{progress}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${allDone ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                        style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                  {nextLesson && (
+                    <Link href={`/courses/${courseId}/lessons/${nextLesson.id}`}
+                      className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-semibold text-sm transition-all">
+                      <Play className="w-3.5 h-3.5" />
+                      {completedLessons.length === 0 ? '学習を開始' : '続きから'}
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -92,57 +92,67 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
       </div>
 
       {/* Lesson list */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         {allDone && (
-          <div className="bg-emerald-950/40 border border-emerald-900/50 rounded-2xl p-5 mb-6 flex items-center gap-3">
-            <Trophy className="w-7 h-7 text-emerald-400 shrink-0" />
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-emerald-500 shrink-0" />
             <div>
-              <p className="font-bold text-emerald-300 text-sm">コース完了おめでとうございます！</p>
+              <p className="font-bold text-emerald-700 text-sm">コース完了おめでとうございます！</p>
               <p className="text-emerald-600 text-xs mt-0.5">すべてのレッスンを修了しました。</p>
             </div>
           </div>
         )}
 
-        <h2 className="font-semibold text-zinc-400 text-xs uppercase tracking-wider mb-4">レッスン一覧</h2>
+        <h2 className="font-semibold text-gray-400 text-xs uppercase tracking-wider mb-3">レッスン一覧</h2>
 
         <div className="space-y-2">
           {lessons.map((lesson, index) => {
             const done = isDone(lesson.id);
             const isLocked = index > 0 && !isDone(lessons[index - 1].id);
 
+            const typeIcon = done
+              ? <CheckCircle className="w-4 h-4 text-emerald-500" />
+              : lesson.type === 'quiz' ? <FileQuestion className="w-4 h-4 text-violet-500" />
+              : lesson.type === 'survey' ? <ClipboardList className="w-4 h-4 text-violet-500" />
+              : <Play className="w-4 h-4 text-gray-400 group-hover:text-violet-500 transition-colors" />;
+
+            const typeLabel = done ? '完了' : lesson.type === 'quiz' ? 'クイズ' : lesson.type === 'survey' ? 'アンケート' : '動画';
+
             if (isLocked) return (
-              <div key={lesson.id} className="flex items-center gap-4 px-4 py-4 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl opacity-40 cursor-not-allowed">
-                <div className="w-8 h-8 bg-zinc-800 rounded-xl flex items-center justify-center shrink-0">
-                  <Lock className="w-3.5 h-3.5 text-zinc-600" />
+              <div key={lesson.id} className="flex items-center gap-3 px-4 py-3.5 bg-white border border-gray-100 rounded-xl opacity-50 cursor-not-allowed">
+                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Lock className="w-3.5 h-3.5 text-gray-400" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-zinc-500">{lesson.title}</p>
-                  <p className="text-[11px] text-zinc-700 mt-0.5">前のレッスンを完了してください</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-500 truncate">{lesson.title}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">前のレッスンを完了してください</p>
                 </div>
               </div>
             );
 
             return (
               <Link key={lesson.id} href={`/courses/${courseId}/lessons/${lesson.id}`} className="group block">
-                <div className={`flex items-center gap-4 px-4 py-4 rounded-2xl border transition-all hover:-translate-y-0.5 ${
-                  done ? 'bg-zinc-900/60 border-zinc-800/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                <div className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all ${
+                  done
+                    ? 'bg-white border-gray-100 hover:border-gray-200'
+                    : 'bg-white border-gray-200 hover:border-violet-300 hover:shadow-sm'
                 }`}>
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                    done ? 'bg-emerald-900/50' : lesson.type === 'quiz' ? 'bg-violet-900/50' : 'bg-zinc-800'
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    done ? 'bg-emerald-50' : lesson.type !== 'video' ? 'bg-violet-50' : 'bg-gray-50'
                   }`}>
-                    {done ? <CheckCircle className="w-4 h-4 text-emerald-400" />
-                      : lesson.type === 'quiz' ? <FileQuestion className="w-4 h-4 text-violet-400" />
-                      : <Play className="w-4 h-4 text-zinc-400 group-hover:text-violet-400 transition-colors" />}
+                    {typeIcon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-sm truncate ${done ? 'text-zinc-500' : 'text-zinc-200 group-hover:text-white transition-colors'}`}>
+                    <p className={`font-medium text-sm truncate ${done ? 'text-gray-400' : 'text-gray-800 group-hover:text-violet-700 transition-colors'}`}>
                       {lesson.title}
                     </p>
-                    <p className={`text-[11px] mt-0.5 ${done ? 'text-emerald-600' : lesson.type === 'quiz' ? 'text-violet-600' : 'text-zinc-600'}`}>
-                      {done ? '✓ 完了' : lesson.type === 'quiz' ? 'クイズ' : '動画レッスン'}
+                    <p className={`text-[11px] mt-0.5 ${done ? 'text-emerald-500' : 'text-gray-400'}`}>
+                      {done ? '✓ ' : ''}{typeLabel}
                     </p>
                   </div>
-                  <ArrowRight className={`w-4 h-4 transition-all ${done ? 'text-zinc-700' : 'text-zinc-700 group-hover:text-violet-400 group-hover:translate-x-1'}`} />
+                  {!isLocked && (
+                    <BookOpen className={`w-4 h-4 shrink-0 transition-all ${done ? 'text-gray-200' : 'text-gray-300 group-hover:text-violet-400'}`} />
+                  )}
                 </div>
               </Link>
             );

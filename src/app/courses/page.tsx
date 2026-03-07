@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Course } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
-import { BookOpen, CheckCircle, Play, ArrowRight, Sparkles } from 'lucide-react';
+import { BookOpen, CheckCircle } from 'lucide-react';
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -30,111 +30,109 @@ export default function CoursesPage() {
     const t = lessonCounts[id] || 0;
     return t === 0 ? 0 : Math.round((completedLessons(id) / t) * 100);
   };
+  const inProgress = (id: string) => completedLessons(id) > 0 && !isCompleted(id);
 
-  const totalCompleted = Object.values(user?.progress || {}).filter((p) => p.completed).length;
-  const totalLessons = Object.values(user?.progress || {}).reduce((a, p) => a + (p.completedLessons?.length || 0), 0);
+  const inProgressCourses = courses.filter((c) => inProgress(c.id));
+  const notStartedCourses = courses.filter((c) => completedLessons(c.id) === 0);
+  const completedCourses = courses.filter((c) => isCompleted(c.id));
+
+  const CourseCard = ({ course }: { course: Course }) => {
+    const done = completedLessons(course.id);
+    const total = lessonCounts[course.id] || 0;
+    const progress = pct(course.id);
+    const completed = isCompleted(course.id);
+    const started = done > 0;
+
+    return (
+      <Link href={`/courses/${course.id}`} className="group block">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 h-full flex flex-col">
+          {/* Thumbnail */}
+          <div className="relative overflow-hidden">
+            {course.thumbnail ? (
+              <img src={course.thumbnail} alt={course.title} className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500" />
+            ) : (
+              <div className="h-40 bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center">
+                <BookOpen className="w-10 h-10 text-violet-300" />
+              </div>
+            )}
+            {started && !completed && (
+              <div className="absolute top-2.5 left-2.5 bg-blue-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md">受講中</div>
+            )}
+            {completed && (
+              <div className="absolute top-2.5 left-2.5 bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />完了
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 flex-1 flex flex-col">
+            <h3 className="font-semibold text-gray-900 line-clamp-2 leading-snug text-sm group-hover:text-violet-700 transition-colors">{course.title}</h3>
+            {course.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed flex-1">{course.description}</p>}
+
+            <div className="mt-3">
+              {total > 0 && (
+                <div className="mb-2">
+                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${completed ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                      style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-400">{total} セッション</p>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
+  const SectionGrid = ({ title, subtitle, courses: items }: { title: string; subtitle?: string; courses: Course[] }) => (
+    <div className="mb-10">
+      <div className="flex items-end justify-between mb-1">
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <span className="text-sm text-violet-600 font-medium">全てを見る ({items.length})</span>
+      </div>
+      {subtitle && <p className="text-sm text-gray-500 mb-4">{subtitle}</p>}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {items.map((course) => <CourseCard key={course.id} course={course} />)}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
-
-      {/* Hero */}
-      <div className="border-b border-zinc-900 bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-5 h-5 text-violet-400" />
-            <span className="text-violet-400 text-sm font-semibold tracking-wide uppercase">ENISHI LESSONS</span>
-          </div>
-          <h1 className="text-3xl font-bold text-white">マイコース</h1>
-          <p className="text-zinc-500 mt-2">学習を続けてスキルアップしましょう</p>
-          {user && (totalCompleted > 0 || totalLessons > 0) && (
-            <div className="flex items-center gap-6 mt-6 pt-6 border-t border-zinc-900">
-              <div>
-                <p className="text-xl font-bold text-white">{totalCompleted}</p>
-                <p className="text-xs text-zinc-600 mt-0.5">完了コース</p>
-              </div>
-              <div className="w-px h-8 bg-zinc-800" />
-              <div>
-                <p className="text-xl font-bold text-white">{totalLessons}</p>
-                <p className="text-xs text-zinc-600 mt-0.5">完了レッスン</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => <div key={i} className="bg-zinc-900 rounded-2xl h-72 animate-pulse" />)}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl overflow-hidden animate-pulse">
+                <div className="h-40 bg-gray-100" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-gray-100 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : courses.length === 0 ? (
           <div className="text-center py-24">
-            <BookOpen className="w-12 h-12 mx-auto text-zinc-700 mb-4" />
-            <p className="text-zinc-500">公開中のコースがありません</p>
+            <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-400">公開中のコースがありません</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.map((course) => {
-              const done = completedLessons(course.id);
-              const total = lessonCounts[course.id] || 0;
-              const progress = pct(course.id);
-              const completed = isCompleted(course.id);
-              const started = done > 0;
-
-              return (
-                <Link key={course.id} href={`/courses/${course.id}`} className="group block">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all hover:-translate-y-0.5 h-full flex flex-col">
-                    {/* Thumbnail */}
-                    {course.thumbnail ? (
-                      <div className="relative overflow-hidden">
-                        <img src={course.thumbnail} alt={course.title} className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-transparent to-transparent" />
-                      </div>
-                    ) : (
-                      <div className="h-44 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative overflow-hidden">
-                        <div className="absolute inset-0 opacity-5">
-                          <div className="absolute top-4 right-6 w-24 h-24 rounded-full bg-violet-400" />
-                          <div className="absolute bottom-2 left-4 w-16 h-16 rounded-full bg-violet-400" />
-                        </div>
-                        <BookOpen className="w-10 h-10 text-zinc-700 relative z-10" />
-                      </div>
-                    )}
-
-                    <div className="p-5 flex-1 flex flex-col">
-                      <h2 className="font-bold text-zinc-100 group-hover:text-violet-300 transition-colors line-clamp-2 leading-snug text-[15px]">{course.title}</h2>
-                      <p className="text-sm text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed flex-1">{course.description}</p>
-
-                      {total > 0 && (
-                        <div className="mt-4">
-                          <div className="flex justify-between mb-1.5">
-                            <span className="text-xs text-zinc-600">{done}/{total} レッスン</span>
-                            <span className="text-xs font-semibold text-violet-400">{progress}%</span>
-                          </div>
-                          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-700 ${completed ? 'bg-emerald-500' : 'bg-violet-500'}`}
-                              style={{ width: `${progress}%` }} />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800/60">
-                        <div className="flex items-center gap-1.5">
-                          {completed
-                            ? <><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-xs text-emerald-400 font-medium">完了済み</span></>
-                            : started
-                            ? <><Play className="w-4 h-4 text-violet-400" /><span className="text-xs text-violet-400 font-medium">続きから</span></>
-                            : <><Play className="w-4 h-4 text-zinc-600" /><span className="text-xs text-zinc-500">開始する</span></>
-                          }
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-violet-400 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <>
+            {inProgressCourses.length > 0 && (
+              <SectionGrid title="受講中" subtitle={`${inProgressCourses.length} コース`} courses={inProgressCourses} />
+            )}
+            {notStartedCourses.length > 0 && (
+              <SectionGrid title="コース一覧" subtitle={`${notStartedCourses.length} コース`} courses={notStartedCourses} />
+            )}
+            {completedCourses.length > 0 && (
+              <SectionGrid title="完了済み" subtitle={`${completedCourses.length} コース`} courses={completedCourses} />
+            )}
+          </>
         )}
       </div>
     </div>
