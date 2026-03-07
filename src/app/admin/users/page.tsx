@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Users, Shield, GraduationCap, ChevronRight, BookOpen } from 'lucide-react';
+import { Search, Users, Shield, GraduationCap, ChevronRight, BookOpen, UserPlus, X, Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface UserItem {
   id: string;
@@ -18,6 +18,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'student'>('all');
+
+  // Add account modal
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '', displayName: '', role: 'student' as 'student' | 'admin' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     fetch('/api/users').then((r) => r.json()).then((d) => { setUsers(d); setLoading(false); });
@@ -35,13 +42,46 @@ export default function UsersPage() {
   const totalStudents = users.filter((u) => u.role === 'student').length;
   const totalAdmins = users.filter((u) => u.role === 'admin').length;
 
+  const openModal = () => {
+    setForm({ email: '', password: '', displayName: '', role: 'student' });
+    setFormError('');
+    setShowModal(true);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    if (form.password.length < 6) { setFormError('パスワードは6文字以上で入力してください'); return; }
+    setSubmitting(true);
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setFormError(data.error || '作成に失敗しました');
+      setSubmitting(false);
+      return;
+    }
+    setUsers((prev) => [data, ...prev]);
+    setShowModal(false);
+    setSubmitting(false);
+  };
+
   return (
     <div className="px-4 sm:px-6 py-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">ユーザー管理</h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          全{users.length}名 · <span className="text-zinc-400">{totalStudents}名受講生</span> · <span className="text-violet-400">{totalAdmins}名管理者</span>
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-white">ユーザー管理</h1>
+          <p className="text-zinc-500 text-sm mt-1">
+            全{users.length}名 · <span className="text-zinc-400">{totalStudents}名受講生</span> · <span className="text-violet-400">{totalAdmins}名管理者</span>
+          </p>
+        </div>
+        <button onClick={openModal}
+          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-semibold transition-all">
+          <UserPlus className="w-4 h-4" />アカウント追加
+        </button>
       </div>
 
       {/* Search & filter */}
@@ -150,6 +190,102 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {/* Add Account Modal */}
+      {showModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setShowModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-violet-400" />アカウントを追加
+                </h2>
+                <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-zinc-800 rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-zinc-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreate} className="px-6 py-5 space-y-4">
+                {formError && (
+                  <div className="bg-rose-950/40 border border-rose-900/50 text-rose-400 px-4 py-3 rounded-xl text-sm">{formError}</div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">表示名 <span className="text-zinc-600 font-normal">（任意）</span></label>
+                  <input
+                    type="text"
+                    value={form.displayName}
+                    onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
+                    placeholder="山田 太郎"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">メールアドレス <span className="text-rose-500">*</span></label>
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
+                    placeholder="user@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">パスワード <span className="text-rose-500">*</span></label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={form.password}
+                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                      className="w-full px-4 py-2.5 pr-10 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all"
+                      placeholder="6文字以上"
+                    />
+                    <button type="button" onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-2">アカウント種別</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ['student', '受講生', GraduationCap],
+                      ['admin', '管理者', Shield],
+                    ] as const).map(([v, label, Icon]) => (
+                      <button key={v} type="button" onClick={() => setForm((p) => ({ ...p, role: v }))}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                          form.role === v
+                            ? 'border-violet-600 bg-violet-900/30 text-violet-300'
+                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                        }`}>
+                        <Icon className="w-4 h-4" />{label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setShowModal(false)}
+                    className="flex-1 px-4 py-2.5 border border-zinc-700 text-zinc-400 rounded-xl text-sm font-medium hover:bg-zinc-800 transition-colors">
+                    キャンセル
+                  </button>
+                  <button type="submit" disabled={submitting}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50">
+                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />作成中...</> : <>アカウント作成</>}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
