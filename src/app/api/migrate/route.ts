@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { put, list, del } from '@vercel/blob';
-import { saveUser, saveCourse, saveLesson, saveQuiz, saveSubmission } from '@/lib/db';
+import { saveUser, saveCourse, saveLesson, saveQuiz, saveSubmission, getUsers } from '@/lib/db';
+
+// Re-index all existing users to create email index blobs (GET /api/migrate)
+export async function GET() {
+  const users = await getUsers();
+  await Promise.all(users.map((u) => saveUser(u)));
+  return NextResponse.json({ ok: true, reindexed: users.length });
+}
 
 const STORE = process.env.BLOB_READ_WRITE_TOKEN!;
 

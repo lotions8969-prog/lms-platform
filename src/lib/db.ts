@@ -59,11 +59,27 @@ export async function getUserById(id: string): Promise<User | null> {
   return fetchBlob<User>(blobs[0].url);
 }
 export async function getUserByEmail(email: string): Promise<User | null> {
+  // Fast path: direct lookup via email index (avoids scanning all users)
+  const emailKey = `db/users-email/${encodeURIComponent(email.toLowerCase())}.json`;
+  const { blobs: eb } = await list({ prefix: emailKey, token: STORE });
+  if (eb.length > 0) {
+    return fetchBlob<User>(eb[0].url);
+  }
+  // Fallback: full scan (for existing users without email index)
   const users = await getUsers();
-  return users.find((u) => u.email === email) ?? null;
+  const user = users.find((u) => u.email === email) ?? null;
+  if (user) {
+    // Create email index for next time (non-blocking)
+    writeRecord(emailKey, user).catch(() => {});
+  }
+  return user;
 }
 export async function saveUser(user: User): Promise<void> {
-  await writeRecord(`db/users/${user.id}.json`, user);
+  const emailKey = `db/users-email/${encodeURIComponent(user.email.toLowerCase())}.json`;
+  await Promise.all([
+    writeRecord(`db/users/${user.id}.json`, user),
+    writeRecord(emailKey, user),
+  ]);
 }
 export async function deleteUser(id: string): Promise<void> {
   await deleteRecord(`db/users/${id}.json`);
