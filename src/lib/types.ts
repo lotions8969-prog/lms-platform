@@ -27,10 +27,11 @@ export interface Course {
 export interface Lesson {
   id: string;
   courseId: string;
-  type: 'video' | 'quiz';
+  type: 'video' | 'quiz' | 'survey';
   title: string;
   description?: string;
   videoUrl?: string;
+  surveyId?: string;
   order: number;
   createdAt: string;
 }

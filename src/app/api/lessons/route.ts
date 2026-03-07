@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: '権限がありません' }, { status: 403 });
   }
-  const { courseId, type, title, description, videoUrl, order, questions, passingScore } = await req.json();
+  const { courseId, type, title, description, videoUrl, surveyId, order, questions, passingScore } = await req.json();
   const lessonId = uuidv4();
   const lesson: Lesson = {
     id: lessonId,
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     title,
     description: description || undefined,
     videoUrl: type === 'video' ? videoUrl : undefined,
+    surveyId: type === 'survey' ? surveyId : undefined,
     order,
     createdAt: new Date().toISOString(),
   };

@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lesson, Quiz } from '@/lib/types';
+import { Lesson, Quiz, Survey } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import VideoPlayer from '@/components/VideoPlayer';
 import RecordingSection from '@/components/RecordingSection';
 import QuizSection from '@/components/QuizSection';
+import SurveyLessonSection from '@/components/SurveyLessonSection';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, CheckCircle, Play, FileQuestion, Lock, Menu, X, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, Play, FileQuestion, Lock, Menu, X, Settings, ClipboardList } from 'lucide-react';
 import { use } from 'react';
 
 export default function LessonPage({ params }: { params: Promise<{ courseId: string; lessonId: string }> }) {
   const { courseId, lessonId } = use(params);
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [survey, setSurvey] = useState<Survey | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
@@ -27,9 +29,10 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
     Promise.all([
       fetch(`/api/lessons/${lessonId}`).then((r) => r.json()),
       fetch(`/api/lessons?courseId=${courseId}`).then((r) => r.json()),
-    ]).then(([{ lesson: l, quiz: q }, allLs]) => {
+    ]).then(([{ lesson: l, quiz: q, survey: s }, allLs]) => {
       setLesson(l);
       setQuiz(q);
+      setSurvey(s);
       setAllLessons(allLs);
       if (user?.progress?.[courseId]?.completedLessons?.includes(lessonId)) setCompleted(true);
       setLoading(false);
@@ -135,6 +138,14 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
                 <div className="text-center py-12 text-zinc-600 bg-zinc-900 rounded-2xl">クイズが設定されていません</div>
               )}
 
+              {/* Survey */}
+              {lesson.type === 'survey' && survey && (
+                <SurveyLessonSection survey={survey} lessonId={lessonId} onComplete={markComplete} />
+              )}
+              {lesson.type === 'survey' && !survey && (
+                <div className="text-center py-12 text-zinc-600 bg-zinc-900 rounded-2xl">アンケートが設定されていません</div>
+              )}
+
               {/* Recording (video lessons only) */}
               {lesson.type === 'video' && (
                 <RecordingSection lessonId={lessonId} courseId={courseId} onUploaded={markComplete} />
@@ -215,6 +226,8 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
                           ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                           : l.type === 'quiz'
                           ? <FileQuestion className={`w-3.5 h-3.5 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
+                          : l.type === 'survey'
+                          ? <ClipboardList className={`w-3.5 h-3.5 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
                           : <Play className={`w-3.5 h-3.5 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
                         }
                       </div>
@@ -223,7 +236,7 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
                           {l.title}
                         </p>
                         <p className={`text-xs mt-0.5 ${done ? 'text-emerald-600' : 'text-zinc-700'}`}>
-                          {done ? '✓ 完了' : l.type === 'quiz' ? 'クイズ' : '動画'}
+                          {done ? '✓ 完了' : l.type === 'quiz' ? 'クイズ' : l.type === 'survey' ? 'アンケート' : '動画'}
                         </p>
                       </div>
                     </Link>
@@ -262,6 +275,7 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
                     className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrent ? 'bg-violet-900/20' : 'hover:bg-zinc-800/50'}`}>
                     {done ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                       : l.type === 'quiz' ? <FileQuestion className="w-4 h-4 text-violet-400 shrink-0" />
+                      : l.type === 'survey' ? <ClipboardList className="w-4 h-4 text-violet-400 shrink-0" />
                       : <Play className="w-4 h-4 text-zinc-400 shrink-0" />}
                     <span className={`text-sm truncate ${isCurrent ? 'font-semibold text-violet-300' : done ? 'text-zinc-600' : 'text-zinc-300'}`}>
                       {l.title}

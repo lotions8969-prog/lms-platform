@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { upload } from '@vercel/blob/client';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Trash2, Save, AlertCircle, Upload, Link2, Video, Loader2, CheckCircle2, Library, Play, X } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Save, AlertCircle, Upload, Link2, Video, Loader2, CheckCircle2, Library, Play, X, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { use } from 'react';
 
 interface QuizQuestionInput { question: string; options: string[]; answer: number; }
 interface VideoItem { url: string; pathname: string; filename: string; size: number; uploadedAt: string; }
+interface SurveyItem { id: string; title: string; published: boolean; }
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -17,7 +18,7 @@ function formatBytes(bytes: number) {
 
 export default function NewLessonPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
-  const [type, setType] = useState<'video' | 'quiz'>('video');
+  const [type, setType] = useState<'video' | 'quiz' | 'survey'>('video');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [videoInputMode, setVideoInputMode] = useState<'upload' | 'library' | 'url'>('upload');
@@ -34,6 +35,8 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   const [order, setOrder] = useState(1);
   const [passingScore, setPassingScore] = useState(70);
   const [questions, setQuestions] = useState<QuizQuestionInput[]>([{ question: '', options: ['', '', '', ''], answer: 0 }]);
+  const [surveys, setSurveys] = useState<SurveyItem[]>([]);
+  const [selectedSurveyId, setSelectedSurveyId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +53,12 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
   useEffect(() => {
     if (videoInputMode === 'library') loadLibrary();
   }, [videoInputMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (type === 'survey' && surveys.length === 0) {
+      fetch('/api/surveys').then((r) => r.json()).then((d) => setSurveys(d));
+    }
+  }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,6 +97,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
     e.preventDefault();
     setError('');
     if (type === 'video' && !finalVideoUrl) { setError('動画を選択するかURLを入力してください'); return; }
+    if (type === 'survey' && !selectedSurveyId) { setError('アンケートを選択してください'); return; }
     setLoading(true);
     try {
       const res = await fetch('/api/lessons', {
@@ -97,6 +107,7 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
           courseId, type, title,
           description: description || undefined,
           videoUrl: type === 'video' ? finalVideoUrl : undefined,
+          surveyId: type === 'survey' ? selectedSurveyId : undefined,
           order,
           questions: type === 'quiz' ? questions : undefined,
           passingScore,
@@ -131,13 +142,17 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className={labelCls}>レッスンタイプ</label>
-            <div className="flex gap-3">
-              {(['video', 'quiz'] as const).map((t) => (
-                <button key={t} type="button" onClick={() => setType(t)}
+            <div className="flex gap-3 flex-wrap">
+              {([
+                { value: 'video', label: '🎬 動画レッスン' },
+                { value: 'quiz', label: '📝 クイズ' },
+                { value: 'survey', label: '📋 アンケート' },
+              ] as const).map(({ value, label }) => (
+                <button key={value} type="button" onClick={() => setType(value)}
                   className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    type === t ? 'border-violet-600 bg-violet-900/30 text-violet-300' : 'border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                    type === value ? 'border-violet-600 bg-violet-900/30 text-violet-300' : 'border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
                   }`}>
-                  {t === 'video' ? '🎬 動画レッスン' : '📝 クイズ'}
+                  {label}
                 </button>
               ))}
             </div>
@@ -314,6 +329,42 @@ export default function NewLessonPage({ params }: { params: Promise<{ courseId: 
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {type === 'survey' && (
+            <div>
+              <label className={labelCls}>
+                <ClipboardList className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+                アンケートを選択 <span className="text-rose-500 normal-case">*</span>
+              </label>
+              {surveys.length === 0 ? (
+                <div className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-500">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />読み込み中...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {surveys.map((s) => (
+                    <label key={s.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all border ${
+                      selectedSurveyId === s.id ? 'border-violet-600 bg-violet-900/20' : 'border-zinc-700 hover:border-zinc-600'
+                    }`}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        selectedSurveyId === s.id ? 'border-violet-500 bg-violet-500' : 'border-zinc-600'
+                      }`}>
+                        {selectedSurveyId === s.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <input type="radio" className="hidden" name="surveyId" value={s.id} onChange={() => setSelectedSurveyId(s.id)} />
+                      <span className="text-sm font-medium text-zinc-200 flex-1">{s.title}</span>
+                      {!s.published && <span className="text-[10px] bg-zinc-800 text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full">下書き</span>}
+                    </label>
+                  ))}
+                  <p className="text-xs text-zinc-600 mt-1">
+                    アンケートがない場合は先に
+                    <a href="/admin/surveys/new" target="_blank" className="text-violet-400 hover:text-violet-300 ml-1 underline">アンケートを作成</a>
+                    してください
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
