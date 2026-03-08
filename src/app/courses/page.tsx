@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Course } from '@/lib/types';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, Play, ChevronRight } from 'lucide-react';
 
 function CourseCard({ course, done, total, inProgress, completed }: {
   course: Course;
@@ -17,8 +17,9 @@ function CourseCard({ course, done, total, inProgress, completed }: {
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <Link href={`/courses/${course.id}`} className="group block h-full">
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col">
+    <Link href={`/courses/${course.id}`} className="group block">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col">
+        {/* Thumbnail */}
         <div className="relative w-full overflow-hidden bg-gray-100 flex-shrink-0" style={{ paddingTop: '56.25%' }}>
           <div className="absolute inset-0">
             {course.thumbnail ? (
@@ -28,21 +29,24 @@ function CourseCard({ course, done, total, inProgress, completed }: {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center">
                 <BookOpen className="w-10 h-10 text-white/60" />
               </div>
             )}
           </div>
-          {inProgress && (
-            <span className="absolute bottom-2.5 left-2.5 bg-blue-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-sm shadow-sm z-10">
+
+          {/* Status badge */}
+          {completed ? (
+            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm flex items-center gap-1 z-10">
+              <CheckCircle2 className="w-2.5 h-2.5" />完了
+            </span>
+          ) : inProgress ? (
+            <span className="absolute top-2 left-2 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm z-10">
               受講中
             </span>
-          )}
-          {completed && (
-            <span className="absolute bottom-2.5 left-2.5 bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-sm shadow-sm flex items-center gap-1 z-10">
-              <CheckCircle2 className="w-3 h-3" />完了
-            </span>
-          )}
+          ) : null}
+
+          {/* Progress bar */}
           {(inProgress || completed) && total > 0 && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 z-10">
               <div
@@ -51,35 +55,47 @@ function CourseCard({ course, done, total, inProgress, completed }: {
               />
             </div>
           )}
+
+          {/* Play overlay */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md">
+              <Play className="w-4 h-4 text-indigo-600 ml-0.5" />
+            </div>
+          </div>
         </div>
 
+        {/* Info */}
         <div className="p-3.5 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors flex-1">
+          <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors flex-1">
             {course.title}
           </h3>
-          <p className="mt-2 text-xs text-gray-500">{total} セッション</p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-xs text-gray-400">{total} セッション</p>
+            {inProgress && total > 0 && (
+              <p className="text-xs text-blue-500 font-medium">{progress}%</p>
+            )}
+          </div>
         </div>
       </div>
     </Link>
   );
 }
 
-function Section({ title, subtitle, count, children }: {
+function Section({ title, count, children, showAll }: {
   title: string;
-  subtitle?: string;
   count: number;
   children: React.ReactNode;
+  showAll?: boolean;
 }) {
   return (
     <section>
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
-        </div>
-        <span className="text-sm text-blue-500 font-medium whitespace-nowrap ml-4 mt-1">
-          全てを見る ({count})
-        </span>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-bold text-gray-900">{title}</h2>
+        {showAll && (
+          <button className="text-sm text-indigo-500 font-medium flex items-center gap-0.5 hover:text-indigo-700 transition-colors whitespace-nowrap">
+            全てを見る ({count})<ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
       {children}
     </section>
@@ -116,7 +132,7 @@ export default function CoursesPage() {
   const completedCourses = courses.filter((c) => isCompleted(c.id));
 
   const Grid = ({ items }: { items: Course[] }) => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
       {items.map((c) => (
         <CourseCard
           key={c.id}
@@ -131,11 +147,11 @@ export default function CoursesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-10">
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
                 <div className="w-full bg-gray-100" style={{ paddingTop: '56.25%' }} />
@@ -158,17 +174,17 @@ export default function CoursesPage() {
         ) : (
           <>
             {inProgressCourses.length > 0 && (
-              <Section title="受講中のコース" subtitle={`${inProgressCourses.length} コース`} count={inProgressCourses.length}>
+              <Section title="受講中のコース" count={inProgressCourses.length} showAll={inProgressCourses.length > 4}>
                 <Grid items={inProgressCourses} />
               </Section>
             )}
             {notStartedCourses.length > 0 && (
-              <Section title="コース一覧" subtitle={`${notStartedCourses.length} コース`} count={notStartedCourses.length}>
+              <Section title="コース一覧" count={notStartedCourses.length} showAll={notStartedCourses.length > 4}>
                 <Grid items={notStartedCourses} />
               </Section>
             )}
             {completedCourses.length > 0 && (
-              <Section title="完了済み" subtitle={`${completedCourses.length} コース`} count={completedCourses.length}>
+              <Section title="完了済み" count={completedCourses.length} showAll={completedCourses.length > 4}>
                 <Grid items={completedCourses} />
               </Section>
             )}

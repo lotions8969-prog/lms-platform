@@ -23,6 +23,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (type === 'lesson') {
           if (session?.role !== 'admin') throw new Error('権限がありません');
           if (!pathname.startsWith('lesson-videos/')) throw new Error('不正なパスです');
+        } else if (type === 'thumbnail') {
+          if (session?.role !== 'admin') throw new Error('権限がありません');
+          if (!pathname.startsWith('thumbnails/')) throw new Error('不正なパスです');
+          return {
+            allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/*'],
+            maximumSizeInBytes: 10 * 1024 * 1024, // 10MB
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            tokenPayload: JSON.stringify({ userId: session?.id, type }),
+          };
         } else {
           if (!pathname.startsWith('videos/')) throw new Error('不正なパスです');
         }
