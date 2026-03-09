@@ -33,7 +33,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   const nextLesson = lessons.find((l) => !isDone(l.id));
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
       <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse space-y-3">
         <div className="h-56 bg-white rounded-2xl" />
@@ -43,7 +43,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
 
       {/* Course header */}

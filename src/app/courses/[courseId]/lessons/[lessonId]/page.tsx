@@ -95,7 +95,7 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
               <div className="max-w-5xl mx-auto w-full px-4 pt-6 pb-4">
                 {lesson.videoUrl
                   ? <VideoPlayer videoUrl={lesson.videoUrl} onEnded={markComplete} />
-                  : <div className="aspect-video bg-zinc-900 rounded-xl flex items-center justify-center text-zinc-600">動画が設定されていません</div>
+                  : <div className="aspect-video bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">動画が設定されていません</div>
                 }
               </div>
             </div>
